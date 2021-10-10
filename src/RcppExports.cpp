@@ -5,6 +5,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // load_obj
 List load_obj(std::string inputfile, std::string basedir);
 RcppExport SEXP _rayvertex_load_obj(SEXP inputfileSEXP, SEXP basedirSEXP) {

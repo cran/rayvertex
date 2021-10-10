@@ -1,4 +1,4 @@
-034447b1d02f2fef5f2d6f08df44a806 *DESCRIPTION
+33d30e78c74d5163e7788d82864defb7 *DESCRIPTION
 e37114edf7d88b90184d3d97e5a78675 *NAMESPACE
 a293f70797d98e378db7337976f4bdaf *R/RcppExports.R
 6c65ca2e1b883e944837df0e558d6b6d *R/add_shape.R
@@ -8,13 +8,13 @@ a293f70797d98e378db7337976f4bdaf *R/RcppExports.R
 54e22cb35fd5fe9c18413b7906fc7def *R/objects.R
 023bb9a74eaa191f2a2f85696537e9a9 *R/r_obj.R
 a01360ac158f4e6fab86acf335295305 *R/rasterize_lines.R
-ae1ba37e72aa5fccc4fe731d6cc758ef *R/rasterize_scene.R
+9be31efd9a2fbbc84aec8dd31d368dfb *R/rasterize_scene.R
 7f42fca5c29d80b99313f6f6ebb20a0a *R/rayvertexcpp.R
-298ef5e10c03d9530b36f091d1c1dd05 *R/readobj.R
+d357cbdd60d326d0d7b38256914c217f *R/readobj.R
 08e634c2cfc7c63ac67ca09917b67050 *R/save_png.R
 dae46efcc9c705d717e799f2691d9861 *R/util_functions.R
 b56ff2b193ecba52f9ec7f3b10cca008 *R/utils-pipe.R
-41d58627606b76bcd983abf88455f4e8 *inst/COPYRIGHTS
+931b2f38f688562d1abb9c2ca2247241 *inst/COPYRIGHTS
 2a1af35fc550923e4f21f24a2fb5b4b0 *inst/extdata/arrow.txt
 ac0608966e0b66860b838e2d6bee9003 *inst/extdata/cone.txt
 4cfef122b2f42f3a233b90459ae2b908 *inst/extdata/cube.txt
@@ -55,7 +55,7 @@ ee53ef199fbe664f09fb49ee0794998f *man/ply_mesh.Rd
 f82e0bd3a358c76b298657fd7c66bf2d *man/point_light.Rd
 853044202d05cd0233ca4664eccdd10e *man/r_obj.Rd
 862c71b4a2ba6c02e85dea3cb7e4e0c6 *man/rasterize_lines.Rd
-7c74d55a08bcbaf55e14d541587beb3b *man/rasterize_scene.Rd
+14e5c55abb7c5570b1171251e119dc2e *man/rasterize_scene.Rd
 54243488bb4260434d8140381cbc7d59 *man/raysterizer-package.Rd
 4655e0d7af1a2c1bcd77bec89384592f *man/read_obj.Rd
 c8a283a408135fd9fe61f75c660087ab *man/read_ply.Rd
@@ -77,7 +77,7 @@ c1ef9176e8f12e5965a0688d7646fd5f *man/text3d_mesh.Rd
 708f9c302e6d5877bad82c2c550755d1 *man/xz_rect_mesh.Rd
 27e04816ebf6f6a9dc7f5c8056d9a2c3 *man/yz_rect_mesh.Rd
 4f2e5ff14bf3e41dba34982dcbee16a3 *src/Makevars
-18453aeea3244b3a5dad750957fb5fbe *src/RcppExports.cpp
+cd63aedaf49310d35798d2cf98a1b74f *src/RcppExports.cpp
 c9582368bd17960777ba467f42bfb7d4 *src/alphainfo.h
 a43984360f58ab71cd346aedf24da09d *src/defines.h
 77e22187d8ce5228683aca56720eb59a *src/filltri.cpp
@@ -515,11 +515,10 @@ d416e0c170289dd85879474a57564d78 *src/model.h
 261d5be9a76e541bc5b983f37691f8fd *src/rasterize_lines_rcpp.cpp
 494b3da2ea565414ba4debee21b26f55 *src/rayimage.cpp
 a689caedc04e4ac2ce623097ffe51ef1 *src/rayimage.h
-87ec09471e97c6c97a87d1e7347f36fe *src/rayraster.cpp
+1944a99fa72904effd8202080ebc317e *src/rayraster.cpp
 2ffa59826dc3f73d6b29cb331625406f *src/shaders.cpp
 ff5f781d1203eced44f2eeb495c5b370 *src/shaders.h
 20dab7c931f1a56f7e854a418b97fc06 *src/stb_image.h
-9ad3455f4d7539eab0f13fe37ed21c09 *src/stb_image_resize.h
 788a6e678d30e81459c8a453be2a3a6e *src/tiny_obj_loader.h
 6b085045465b75e053039a30b34581eb *src/tonemap.cpp
 2e525af4db5fa3aa4f06a110db87ee7e *src/tonemap.h

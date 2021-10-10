@@ -12,6 +12,8 @@
 #'@param fov Default `20`. Width of the rendered image.
 #'@param lookfrom Default `c(0,0,10)`. Camera location.
 #'@param lookat Default `NULL`. Camera focal position, defaults to the center of the model.
+#'@param fsaa Default `2`. Full screen anti-aliasing multiplier. Must be positive integer, higher numbers
+#'will improve anti-aliasing quality but will vastly increase memory usage.
 #'@param camera_up Default `c(0,1,0)`. Camera up vector.
 #'@param light_info Default `directional_light()`. Description of scene lights, generated with the `point_light()` and
 #'`directional_light()` functions.
@@ -131,8 +133,9 @@
 rasterize_scene  = function(scene, 
                            filename = NA, width=800, height=800, 
                            line_info = NULL, alpha_line = 1.0,
-                           parallel = TRUE,
-                           fov=20,lookfrom=c(0,0,10),lookat=NULL, camera_up = c(0,1,0), #Sanitize lookfrom and lookat inputs
+                           parallel = TRUE, 
+                           fov=20,lookfrom=c(0,0,10),lookat=NULL, camera_up = c(0,1,0),
+                           fsaa = 2,
                            light_info = directional_light(), color="red",
                            type = "diffuse", background = "black", 
                            tangent_space_normals = TRUE,
@@ -175,6 +178,11 @@ rasterize_scene  = function(scene,
     if(attr(scene,"cornell_light")) {
       light_info = add_light(light_info,point_light(c(555/2,450,555/2),  falloff_quad = 0.0, constant = 0.0002, falloff = 0.005))
     }
+  }
+  fsaa = as.integer(fsaa)
+  if(fsaa > 1) {
+    width = width * fsaa
+    height = height * fsaa
   }
   obj = merge_shapes(scene)
   
@@ -354,7 +362,6 @@ rasterize_scene  = function(scene,
       is_dir_light[i] = FALSE
     }
   }
-
   imagelist = rasterize(obj,
                         lightinfo,
                         line_mat = line_info,
@@ -395,27 +402,37 @@ rasterize_scene  = function(scene,
     imagelist$g = imagelist$g * imagelist$amb
     imagelist$b = imagelist$b * imagelist$amb
   }
-  # browser()
   if(debug == "normals") {
     norm_array = array(0,dim=c(dim(imagelist$r)[2:1],3))
     norm_array[,,1] = (imagelist$normalx+1)/2
     norm_array[,,2] = (imagelist$normaly+1)/2
     norm_array[,,3] = (imagelist$normalz+1)/2
     norm_array = rayimage::render_reorient(norm_array,transpose = TRUE, flipx = TRUE)
-    rayimage::plot_image(norm_array)
+    if(is.na(filename)) {
+      rayimage::plot_image(norm_array)
+    }  else {
+      save_png(norm_array, filename = filename)
+    }
     return(invisible(norm_array))
   }
   if(debug == "depth") {
     depth_array = array(0,dim=c(dim(imagelist$r)[2:1],3))
-    depth_array[,,1] = (imagelist$depth)
-    depth_array[,,2] = (imagelist$depth)
-    depth_array[,,3] = (imagelist$depth)
-    depth_array = rayimage::render_reorient(depth_array,transpose = TRUE, flipx = TRUE)
-    depth_array[is.infinite(depth_array)] = 1.2
-    scale_factor = max(depth_array) - min(depth_array)
+    depth_array[,,1] = (imagelist$linear_depth)
+    depth_array[,,2] = (imagelist$linear_depth)
+    depth_array[,,3] = (imagelist$linear_depth)
+    depth_array[is.infinite(depth_array)] = 1
+    scale_factor = max(depth_array, na.rm = TRUE) - min(depth_array, na.rm = TRUE)
     depth_array = (depth_array - min(depth_array))/scale_factor
-    rayimage::plot_image(depth_array)
+    if(is.na(filename)) {
+      depth_array = rayimage::render_reorient(depth_array,transpose = TRUE, flipx = TRUE)
+      rayimage::plot_image(depth_array)
+    }  else {
+      save_png(depth_array, filename = filename)
+    }
     return(invisible(depth_array))
+  }
+  if(debug == "raw_depth") {
+    return(imagelist$linear_depth)
   }
   if(debug == "position") {
     pos_array = array(0,dim=c(dim(imagelist$r)[2:1],3))
@@ -428,7 +445,11 @@ rasterize_scene  = function(scene,
     pos_array[,,3] = (imagelist$positionz)
     pos_array = rayimage::render_reorient(pos_array,transpose = TRUE, flipx = TRUE)
     pos_array[is.infinite(pos_array)] = 1
-    rayimage::plot_image(pos_array)
+    if(is.na(filename)) {
+      rayimage::plot_image(pos_array)
+    }  else {
+      save_png(pos_array, filename = filename)
+    }
     return(invisible(pos_array))
   }
   if(debug == "uv") {
@@ -437,14 +458,17 @@ rasterize_scene  = function(scene,
     uv_array[,,2] = (imagelist$uvy)
     uv_array[,,3] = (imagelist$uvz)
     uv_array = rayimage::render_reorient(uv_array,transpose = TRUE, flipx = TRUE)
-    rayimage::plot_image(uv_array)
+    if(is.na(filename)) {
+      rayimage::plot_image(uv_array)
+    }  else {
+      save_png(uv_array, filename = filename)
+    }
     return(invisible(uv_array))
   }
-  
   if(environment_map == "") {
-    imagelist$r[is.infinite(imagelist$depth)] = bg_color[1]
-    imagelist$g[is.infinite(imagelist$depth)] = bg_color[2]
-    imagelist$b[is.infinite(imagelist$depth)] = bg_color[3]
+    imagelist$r[imagelist$depth == 1] = bg_color[1]
+    imagelist$g[imagelist$depth == 1] = bg_color[2]
+    imagelist$b[imagelist$depth == 1] = bg_color[3]
   }
 
   retmat = array(0,dim=c(dim(imagelist$r)[2:1],3))
@@ -459,10 +483,19 @@ rasterize_scene  = function(scene,
   }
 
   retmat[retmat > 1] = 1
+  if(fsaa > 1) {
+    retmat = rayimage::render_resized(retmat,mag = 1/fsaa, method="mitchell")
+    retmat = abs(retmat)
+  }
   if(is.na(filename)) {
     rayimage::plot_image(retmat)
   } else {
+    retmat[retmat > 1] = 1
+    retmat[retmat < 0] = 0
     save_png(retmat, filename = filename)
+  }
+  if(debug == "all") {
+    return(imagelist)
   }
   return(invisible(retmat))
 }
