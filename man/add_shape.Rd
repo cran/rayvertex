@@ -2,9 +2,7 @@
 % Please edit documentation in R/add_shape.R
 \name{add_shape}
 \alias{add_shape}
-\title{Add Shape
-
-Add shape to the scene}
+\title{Add Shape}
 \usage{
 add_shape(scene, shape)
 }
@@ -17,19 +15,14 @@ add_shape(scene, shape)
 Scene with shape added.
 }
 \description{
-Add Shape
-
-Add shape to the scene
+Add shape to the scene.
 }
 \examples{
+if(rayvertex:::run_documentation()) {
 #Generate several spheres in the cornell box
-\dontshow{
-options("cores"=1)
-}
 scene = generate_cornell_mesh()
 set.seed(1)
 
-\donttest{
 for(i in 1:30) {
  col = hsv(runif(1))
  scene = add_shape(scene, sphere_mesh(position=runif(3)*400+155/2,

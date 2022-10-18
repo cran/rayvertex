@@ -46,77 +46,72 @@
 #'materials in the scene, along with the background.
 #'@param background_sharpness Default `1.0`. A number greater than zero but less than one indicating the sharpness
 #'of the background image.
+#'@param verbose Default `FALSE`. Prints out timing information.
 #'
 #'@return Rasterized image.
 #'@export
 #'@examples
-#'\dontshow{
-#'options("cores"=1)
-#'}
+#'if(rayvertex:::run_documentation()) {
 #'#Let's load the cube OBJ file included with the package
 #'
-#'\donttest{
 #'rasterize_scene(cube_mesh(),lookfrom=c(2,4,10), 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
-#'}
+#' }
+#' if(rayvertex:::run_documentation()) {
 #'#Flatten the cube, translate downwards, and set to grey
-#'base_model = cube_mesh() %>% 
-#'  scale_mesh(scale=c(5,0.2,5)) %>%
-#'  translate_mesh(c(0,-0.1,0)) %>% 
+#'base_model = cube_mesh() |>
+#'  scale_mesh(scale=c(5,0.2,5)) |>
+#'  translate_mesh(c(0,-0.1,0)) |>
 #'  set_material(diffuse="grey80") 
-#'
-#'\donttest{
+#'  
 #'rasterize_scene(base_model, lookfrom=c(2,4,10), 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
-#'}
-#'
+#' }
+#' if(rayvertex:::run_documentation()) {           
 #'#load the R OBJ file, scale it down, color it blue, and add it to the grey base
-#'r_model = obj_mesh(r_obj()) %>% 
-#'  scale_mesh(scale=0.5) %>% 
-#'  set_material(diffuse="dodgerblue") %>% 
+#'r_model = obj_mesh(r_obj()) |>
+#'  scale_mesh(scale=0.5) |>
+#'  set_material(diffuse="dodgerblue") |>
 #'  add_shape(base_model)
 #'  
-#'\donttest{
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #' }
+#' if(rayvertex:::run_documentation()) {
 #'#Zoom in and reduce the shadow mapping intensity
-#'\donttest{
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,shadow_map = TRUE, shadow_map_intensity=0.3,
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #'}
-#'
+#' if(rayvertex:::run_documentation()) {
 #'#Include the resolution (4x) of the shadow map for less pixellation around the edges
 #'#Also decrease the shadow_map_bias slightly to remove the "peter panning" floating shadow effect
-#'\donttest{
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
 #'               shadow_map_dims=4, 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #'}
-#'
+#' if(rayvertex:::run_documentation()) {
 #'#Add some more directional lights and change their color
-#' lights = directional_light(c(0.7,1.1,-0.9),color = "orange",intensity = 1) %>% 
-#'            add_light(directional_light(c(0.7,1,1),color = "dodgerblue",intensity = 1)) %>% 
+#' lights = directional_light(c(0.7,1.1,-0.9),color = "orange",intensity = 1) |>
+#'            add_light(directional_light(c(0.7,1,1),color = "dodgerblue",intensity = 1)) |>
 #'            add_light(directional_light(c(2,4,10),color = "white",intensity = 0.5))
-#'\donttest{
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
 #'               light_info = lights)
 #'}
+#' if(rayvertex:::run_documentation()) {
 #'#Add some point lights
-#'lights_p = lights %>% 
-#'  add_light(point_light(position=c(-1,1,0),color="red", intensity=2)) %>% 
+#'lights_p = lights |>
+#'  add_light(point_light(position=c(-1,1,0),color="red", intensity=2)) |>
 #'  add_light(point_light(position=c(1,1,0),color="purple", intensity=2)) 
-#'\donttest{
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
 #'               light_info = lights_p)
 #'}
+#' if(rayvertex:::run_documentation()) {
 #'#change the camera position
-#'\donttest{
 #'rasterize_scene(r_model, lookfrom=c(-2,2,-10), fov=10,
 #'               light_info = lights_p)
 #'}
+#' if(rayvertex:::run_documentation()) {
 #'               
-#'\donttest{        
 #'#Add a spiral of lines around the model by generating a matrix of line segments
 #' t = seq(0,8*pi,length.out=361)
 #' line_mat = matrix(nrow=0,ncol=9)
@@ -147,7 +142,8 @@ rasterize_scene  = function(scene,
                            shader = "default", 
                            block_size = 4, shape = NULL, line_offset = 0.00001,
                            ortho_dimensions = c(1,1), bloom = FALSE, antialias_lines = TRUE,
-                           environment_map= "", background_sharpness = 1.0) {
+                           environment_map= "", background_sharpness = 1.0, verbose=FALSE) {
+  init_time()
   if(!is.null(attr(scene,"cornell"))) {
     corn_message = "Setting default values for Cornell box: "
     missing_corn = FALSE
@@ -179,11 +175,19 @@ rasterize_scene  = function(scene,
       light_info = add_light(light_info,point_light(c(555/2,450,555/2),  falloff_quad = 0.0, constant = 0.0002, falloff = 0.005))
     }
   }
+  
+  print_time(verbose, "Pre-processing scene")
+  scene = preprocess_scene(scene)
+  print_time(verbose, "Pre-processed  scene")
+  scene = remove_duplicate_materials(scene)
+  print_time(verbose, "Removed duplicate materials")
+  
   fsaa = as.integer(fsaa)
   if(fsaa > 1) {
     width = width * fsaa
     height = height * fsaa
   }
+  
   obj = merge_shapes(scene)
   
   max_indices = 0
@@ -208,18 +212,18 @@ rasterize_scene  = function(scene,
   if(is.null(line_info)) {
     line_info = matrix(nrow=0,ncol=0)
   }
+
   bounds = c(Inf,Inf,Inf,-Inf,-Inf,-Inf)
   for(i in seq_len(length(obj$shapes))) {
-    obj$shapes[[i]]$indices = (obj$shapes[[i]]$indices)
-    obj$shapes[[i]]$tex_indices = (obj$shapes[[i]]$tex_indices)
-    obj$shapes[[i]]$norm_indices = (obj$shapes[[i]]$norm_indices)
-    has_vertex_tex[[i]] = (obj$shapes[[i]]$has_vertex_tex)
-    has_vertex_normals[[i]] = (obj$shapes[[i]]$has_vertex_normals)
+    has_vertex_tex[[i]] = obj$shapes[[i]]$has_vertex_tex
+    has_vertex_normals[[i]] = obj$shapes[[i]]$has_vertex_normals
     
     max_indices = max(c(max_indices,nrow(obj$shapes[[i]]$indices)))
     has_norms[i] = nrow(obj$shapes[[i]]$indices) == nrow(obj$shapes[[i]]$norm_indices)
-    has_tex[i] = nrow(obj$shapes[[i]]$indices) == nrow(obj$shapes[[i]]$tex_indices) && all(obj$shapes[[i]]$tex_indices != -1)
+    has_tex[i] = nrow(obj$shapes[[i]]$indices) == nrow(obj$shapes[[i]]$tex_indices) && all(obj$shapes[[i]]$tex_indices != -1) 
   }
+  print_time(verbose, "Processed scene bounds")
+  
   has_vertex_tex = unlist(has_vertex_tex)
   has_vertex_normals = unlist(has_vertex_normals)
   
@@ -281,6 +285,8 @@ rasterize_scene  = function(scene,
       obj$materials[[i]]$emissive_texname = ""
     }
   }
+  print_time(verbose, "Processed texture filenames")
+  
 
   if(!is.null(options("cores")[[1]])) {
     numbercores = options("cores")[[1]]
@@ -362,6 +368,8 @@ rasterize_scene  = function(scene,
       is_dir_light[i] = FALSE
     }
   }
+  print_time(verbose, "Processed materials")
+  
   imagelist = rasterize(obj,
                         lightinfo,
                         line_mat = line_info,
@@ -380,7 +388,7 @@ rasterize_scene  = function(scene,
                         numbercores = numbercores,
                         max_indices = max_indices,
                         has_normals_vec = has_norms,
-                        has_tex_vec = has_tex,
+                        has_tex_vec = has_tex, #This just determines whether to include tex indices
                         has_texture,
                         has_ambient_texture,
                         has_normal_texture,
@@ -395,7 +403,10 @@ rasterize_scene  = function(scene,
                         antialias_lines,
                         has_vertex_tex,has_vertex_normals,
                         has_reflection_map, environment_map, background_sharpness, has_refraction,
-                        environment_map_hdr, has_environment_map)
+                        environment_map_hdr, has_environment_map, bg_color,
+                        verbose)
+  print_time(verbose, "Rasterized image")
+  
   if(ssao) {
     imagelist$amb = (imagelist$amb)^ssao_intensity
     imagelist$r = imagelist$r * imagelist$amb
@@ -474,18 +485,26 @@ rasterize_scene  = function(scene,
   retmat = array(0,dim=c(dim(imagelist$r)[2:1],3))
   if(tonemap != 4) {
     imagelist = tonemap_image(imagelist$r,imagelist$g,imagelist$b,tonemap)
+    print_time(verbose, "Tonemapped image")
+    
   }
   retmat[,,1] = rayimage::render_reorient(imagelist$r,transpose = TRUE, flipx = TRUE)
   retmat[,,2] = rayimage::render_reorient(imagelist$g,transpose = TRUE, flipx = TRUE)
   retmat[,,3] = rayimage::render_reorient(imagelist$b,transpose = TRUE, flipx = TRUE)
+
   if(bloom) {
     retmat = rayimage::render_convolution(retmat, min_value = 1)
+    print_time(verbose, "Rendered bloom")
+    
   }
+  
 
   retmat[retmat > 1] = 1
   if(fsaa > 1) {
     retmat = rayimage::render_resized(retmat,mag = 1/fsaa, method="mitchell")
     retmat = abs(retmat)
+    print_time(verbose, "Applied FSAA")
+    
   }
   if(is.na(filename)) {
     rayimage::plot_image(retmat)
@@ -497,5 +516,6 @@ rasterize_scene  = function(scene,
   if(debug == "all") {
     return(imagelist)
   }
+  print_time(verbose, "Display/save image")
   return(invisible(retmat))
 }

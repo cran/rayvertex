@@ -2,9 +2,7 @@
 % Please edit documentation in R/add_shape.R
 \name{set_material}
 \alias{set_material}
-\title{Set Material
-
-Add shape to a mesh}
+\title{Set Material}
 \usage{
 set_material(
   mesh,
@@ -103,24 +101,19 @@ matching the material name.}
 Shape with new material
 }
 \description{
-Set Material
-
-Add shape to a mesh
+Set the material(s) of the mesh.
 }
 \examples{
-\dontshow{
-options("cores"=1)
-}
+if(rayvertex:::run_documentation()) {
 #Set the material of an object
-\donttest{
-generate_cornell_mesh() \%>\% 
+generate_cornell_mesh() |>
  add_shape(set_material(sphere_mesh(position=c(400,555/2,555/2),radius=40), 
-                        diffuse="purple", type="phong")) \%>\% 
+                        diffuse="purple", type="phong")) |>
  add_shape(set_material(sphere_mesh(position=c(555/2,220,555/2),radius=40),
-                        dissolve=0.2,culling="none",diffuse="red")) \%>\% 
+                        dissolve=0.2,culling="none",diffuse="red")) |>
  add_shape(set_material(sphere_mesh(position=c(155,300,555/2),radius=60), 
                         material = material_list(diffuse="gold", type="phong", 
-                                                 ambient="gold", ambient_intensity=0.4))) \%>\% 
+                                                 ambient="gold", ambient_intensity=0.4))) |>
  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
  }
 }

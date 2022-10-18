@@ -2,9 +2,7 @@
 % Please edit documentation in R/add_shape.R
 \name{material_list}
 \alias{material_list}
-\title{Material List
-
-Generate a material properties list.}
+\title{Material List}
 \usage{
 material_list(
   diffuse = c(0.8, 0.8, 0.8),
@@ -92,21 +90,17 @@ material_list(
 List of material properties.
 }
 \description{
-Material List
-
 Generate a material properties list.
 }
 \examples{
-\dontshow{
-options("cores"=1)
-}
+if(rayvertex:::run_documentation()) {
 mat_prop = material_list(diffuse="purple", type="phong", shininess=20,
                         ambient="purple", ambient_intensity=0.3,
                         specular = "red", specular_intensity=2)
                         
 p_sphere = sphere_mesh(position=c(555/2,555/2,555/2), 
                       radius=40,material=mat_prop)
-\donttest{
+                      
 rasterize_scene(p_sphere, light_info=directional_light(direction=c(0.1,0.6,-1)))
 }
 }

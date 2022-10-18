@@ -1,6 +1,6 @@
 #'@title Add Shape
 #'
-#'Add shape to the scene
+#'@description Add shape to the scene.
 #'
 #'@param scene The scene to add the shape.
 #'@param shape The mesh to add to the scene.
@@ -9,14 +9,11 @@
 #'@export
 #'
 #'@examples
+#'if(rayvertex:::run_documentation()) {
 #'#Generate several spheres in the cornell box
-#'\dontshow{
-#' options("cores"=1)
-#' }
 #'scene = generate_cornell_mesh()
 #'set.seed(1)
 #'
-#'\donttest{
 #'for(i in 1:30) {
 #'  col = hsv(runif(1))
 #'  scene = add_shape(scene, sphere_mesh(position=runif(3)*400+155/2,
@@ -27,76 +24,108 @@
 #'rasterize_scene(scene, light_info=directional_light(direction=c(0.1,0.6,-1)))
 #'}
 add_shape = function(scene, shape) {
-  if(length(scene) == 0) {
-    return(shape)
-  }
-  max_vertices = nrow(scene$vertices)
-  max_norms = nrow(scene$normals)
-  max_tex = nrow(scene$texcoords)
-  max_material = length(scene$materials)
-  
-  
-  for(i in seq_len(length(shape$shapes))) {
-    shape$shapes[[i]]$indices      = shape$shapes[[i]]$indices      + max_vertices
-    shape$shapes[[i]]$tex_indices  = shape$shapes[[i]]$tex_indices  + max_tex
-    shape$shapes[[i]]$norm_indices = shape$shapes[[i]]$norm_indices + max_norms
-    shape$shapes[[i]]$material_ids = ifelse(shape$shapes[[i]]$material_ids != -1, 
-                                            shape$shapes[[i]]$material_ids + max_material,
-                                            -1)
-  }
-  scene$shapes = c(scene$shapes,shape$shapes)
-
-  scene$vertices  = rbind(scene$vertices,  shape$vertices)
-  scene$normals   = rbind(scene$normals,   shape$normals)
-  scene$texcoords = rbind(scene$texcoords, shape$texcoords)
-  
-  scene$materials = c(scene$materials,shape$materials)
-  scene$material_hashes = c(scene$material_hashes,shape$material_hashes)
-  
-  scene = remove_duplicate_materials(scene)
-  
+  scene$shapes    = c(scene$shapes   , shape$shapes)
+  scene$vertices  = c(scene$vertices , shape$vertices)
+  scene$normals   = c(scene$normals  , shape$normals)
+  scene$texcoords = c(scene$texcoords, shape$texcoords)
+  scene$materials = c(scene$materials, shape$materials)
   if(!is.null(attr(shape,"cornell")) || !is.null(attr(scene,"cornell"))) {
     attr(scene,"cornell") = TRUE
     if(!is.null(attr(shape,"cornell"))) {
-      attr(shape,"cornell_light") = attr(shape,"cornell_light")
+      attr(scene,"cornell_light") = attr(shape,"cornell_light")
     } else {
       attr(scene,"cornell_light") = attr(scene,"cornell_light")
     }
   }
+  class(scene) = c("ray_mesh", "list")
   return(scene)
 }
 
-#'@title Remove Duplicate
+#'@title Preprocess Scene
+#'
+#'@description This function takes a ray_mesh object (which is a list that has multiple vertex/
+#'normal/tex matrices and materials for each, as well as shapes that refer to each one) and combines them into a single set
+#'of vertex/normal/tex matrices and materials by adjusting the index arguments in each shape. 
+#'
+#'@param scene_list The scene list.
+#'@return Scene list converted to proper format.
+#'@keywords internal
+preprocess_scene = function(scene_list) {
+  scene_n = length(scene_list)
+  
+  max_vertices = 0L
+  max_norms = 0L
+  max_tex = 0L
+  max_material = 0L
+
+  #Adjust shape indices to match combined matrix/materials
+  for(i in seq_len(length(scene_list$shapes))) {
+    scene_list$shapes[[i]]$indices      = scene_list$shapes[[i]]$indices      + max_vertices
+    scene_list$shapes[[i]]$tex_indices  = scene_list$shapes[[i]]$tex_indices  + max_tex
+    scene_list$shapes[[i]]$norm_indices = scene_list$shapes[[i]]$norm_indices + max_norms
+    scene_list$shapes[[i]]$material_ids = ifelse(scene_list$shapes[[i]]$material_ids != -1L,
+                                                 scene_list$shapes[[i]]$material_ids + max_material,
+                                                 -1L)
+    max_vertices = max(scene_list$shapes[[i]]$indices) + 1L
+    max_tex = max(scene_list$shapes[[i]]$tex_indices) + 1L
+    max_norms = max(scene_list$shapes[[i]]$norm_indices) + 1L
+    max_material = max(scene_list$shapes[[i]]$material_ids) + 1L
+  }
+  
+  scene = list()
+  scene$shapes = scene_list$shapes
+  
+  #Combine all matrices into one
+  scene$vertices = do.call(rbind,scene_list$vertices)
+  scene$normals = do.call(rbind,scene_list$normals)
+  scene$texcoords = do.call(rbind,scene_list$texcoords)
+  
+  #Combine materials into one
+  scene$materials = scene_list$materials 
+  
+  #Compute hashes
+  scene$material_hashes = unlist(lapply(scene_list$materials, digest::digest))
+  class(scene) = c("ray_mesh", "list")
+  return(scene)
+}
+
+#'@title Remove Duplicates
 #'
 #'@param scene The scene
 #'@return Scene with shape added.
 #'
 #'@keywords internal
 remove_duplicate_materials = function(scene) {
-  if(length(scene$materials) == 1 || length(scene$materials) == 0) {
+  if(length(scene$materials) == 1L || length(scene$materials) == 0L) {
     return(scene)
   }
   
+  #Generate unique set of materials in scene
   scene_material_hashes = scene$material_hashes
   unique_materials = unique(scene_material_hashes)
-  new_ids = rep(0,length(scene_material_hashes))
-  old_ids = seq_len(length(scene_material_hashes)) - 1
   
+  #Allocate new_id vector
+  new_ids = rep(0L,length(scene_material_hashes))
+  
+  #Generate vector for all old non-unique IDs (zero indexed)
+  old_ids = seq_len(length(scene_material_hashes)) - 1L
+  new_mat = list()
+  
+  #Go through each hash and determine which entry it is in the unique_material vector
   for(i in seq_len(length(scene_material_hashes))) {
-    new_ids[i] = min(which(scene_material_hashes[i] == unique_materials)) - 1
+    new_ids[i] = min(which(scene_material_hashes[i] == unique_materials)) - 1L
   }
-  
   for(i in seq_len(length(scene$shapes))) {
-    tmp_ids = scene$shapes[[i]]$material_ids
-    scene$shapes[[i]]$material_ids[tmp_ids %in% old_ids] = new_ids[match(tmp_ids, old_ids, nomatch = 0)]
+    scene$shapes[[i]]$material_ids = new_ids[scene$shapes[[i]]$material_ids + 1L]
   }
   unique_ids = unique(new_ids)
   new_mat = list()
   for(i in seq_len(length(unique_ids))) {
-    new_mat[[i]] = scene$materials[[unique_ids[i]+1]]
+    new_mat[[i]] = scene$materials[[min(which(new_ids == (i-1L)))]]
   }
   scene$materials = new_mat
   scene$material_hashes = unique_materials
+  class(scene) = c("ray_mesh", "list")
   
   return(scene)
 }
@@ -104,7 +133,7 @@ remove_duplicate_materials = function(scene) {
 
 #'@title Merge shapes
 #'
-#'Add shape to a mesh
+#'@description Merge the shapes to one
 #'
 #'@param scene  
 #'@keywords internal
@@ -135,6 +164,7 @@ merge_shapes = function(scene) {
   scene$shapes[[1]]$material_ids = unlist(material_ids)
   scene$shapes[[1]]$has_vertex_tex = unlist(has_vertex_tex)
   scene$shapes[[1]]$has_vertex_normals = unlist(has_vertex_normals)
+  class(scene) = c("ray_mesh", "list")
   
   return(scene)
 }
@@ -147,22 +177,23 @@ merge_shapes = function(scene) {
 #'@return Translated mesh
 #'@export
 #'@examples
-#'\dontshow{
-#' options("cores"=1)
-#' }
+#'if(rayvertex:::run_documentation()) {
 #'#Translate a mesh in the Cornell box
 #'robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
-#' \donttest{
-#'generate_cornell_mesh() %>% 
-#'  add_shape(translate_mesh(robj,c(400,0,155))) %>% 
-#'  add_shape(translate_mesh(robj,c(555/2,100,555/2))) %>% 
-#'  add_shape(translate_mesh(robj,c(155,200,400))) %>% 
+#'generate_cornell_mesh() |>
+#'  add_shape(translate_mesh(robj,c(400,0,155))) |>
+#'  add_shape(translate_mesh(robj,c(555/2,100,555/2))) |>
+#'  add_shape(translate_mesh(robj,c(155,200,400))) |>
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
-#'  }
+#'}
 translate_mesh = function(mesh, position = c(0,0,0)) {
-  mesh$vertices[,1]  = mesh$vertices[,1] + position[1]
-  mesh$vertices[,2]  = mesh$vertices[,2] + position[2]
-  mesh$vertices[,3]  = mesh$vertices[,3] + position[3]
+  for(j in seq_len(length(mesh$vertices))) {
+    mesh$vertices[[j]][,1]  = mesh$vertices[[j]][,1] + position[1]
+    mesh$vertices[[j]][,2]  = mesh$vertices[[j]][,2] + position[2]
+    mesh$vertices[[j]][,3]  = mesh$vertices[[j]][,3] + position[3]
+  }
+  class(mesh) = c("ray_mesh", "list")
+  
   return(mesh)
 }
 
@@ -175,62 +206,69 @@ translate_mesh = function(mesh, position = c(0,0,0)) {
 #'@return Scaled mesh
 #'@export
 #'@examples
-#' \dontshow{
-#' options("cores"=1)
-#' }
+#'if(rayvertex:::run_documentation()) {
 #'#Scale a mesh in the Cornell box
 #'robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
-#' \donttest{
 #'
-#'generate_cornell_mesh() %>% 
-#' add_shape(scale_mesh(translate_mesh(robj,c(400,0,155)),0.5, center=c(400,0,155))) %>% 
-#' add_shape(scale_mesh(translate_mesh(robj,c(555/2,100,555/2)),1.5, center=c(555/2,100,555/2))) %>% 
-#' add_shape(scale_mesh(translate_mesh(robj,c(155,200,400)),c(0.5,2,0.5), center=c(155,200,400))) %>% 
+#'generate_cornell_mesh() |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(400,0,155)),0.5, center=c(400,0,155))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(555/2,100,555/2)),1.5, center=c(555/2,100,555/2))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(155,200,400)),c(0.5,2,0.5), center=c(155,200,400))) |>
 #' rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #' }
 scale_mesh = function(mesh, scale = 1, center = c(0,0,0)) {
   if(length(scale) == 1) {
     scale = rep(scale,3)
   }
-  mesh$vertices[,1]  = (mesh$vertices[,1]-center[1])*scale[1] + center[1]
-  mesh$vertices[,2]  = (mesh$vertices[,2]-center[2])*scale[2] + center[2]
-  mesh$vertices[,3]  = (mesh$vertices[,3]-center[3])*scale[3] + center[3]
-  
-  if(!is.null(mesh$normals) && nrow(mesh$normals) > 0) {
-    mesh$normals[,1]  = mesh$normals[,1]*1/scale[1]
-    mesh$normals[,2]  = mesh$normals[,2]*1/scale[2]
-    mesh$normals[,3]  = mesh$normals[,3]*1/scale[3]
-    for(i in seq_len(nrow(mesh$normals))) {
-      length_single = sqrt(mesh$normals[i,1]^2 + mesh$normals[i,2]^2 + mesh$normals[i,3]^2)
-      mesh$normals[i,] = mesh$normals[i,]/length_single
+  for(j in seq_len(length(mesh$vertices))) {
+    mesh$vertices[[j]][,1]  = (mesh$vertices[[j]][,1]-center[1])*scale[1] + center[1]
+    mesh$vertices[[j]][,2]  = (mesh$vertices[[j]][,2]-center[2])*scale[2] + center[2]
+    mesh$vertices[[j]][,3]  = (mesh$vertices[[j]][,3]-center[3])*scale[3] + center[3]
+    
+    if(!is.null(mesh$normals[[j]]) && nrow(mesh$normals[[j]]) > 0) {
+      mesh$normals[[j]][,1]  = mesh$normals[[j]][,1]*1/scale[1]
+      mesh$normals[[j]][,2]  = mesh$normals[[j]][,2]*1/scale[2]
+      mesh$normals[[j]][,3]  = mesh$normals[[j]][,3]*1/scale[3]
+      for(i in seq_len(nrow(mesh$normals[[j]]))) {
+        length_single = sqrt(mesh$normals[[j]][i,1]^2 + mesh$normals[[j]][i,2]^2 + mesh$normals[[j]][i,3]^2)
+        mesh$normals[[j]][i,] = mesh$normals[[j]][i,]/length_single
+      }
     }
   }
+  class(mesh) = c("ray_mesh", "list")
+  
   return(mesh)
 }
 
 #'@title Center Mesh
 #'
-#'Centers the mesh at the origin.
+#'@description Centers the mesh at the origin.
 #'
-#'@param mesh The mesh.
+#'@param mesh The mesh object.
 #'
 #'@return Centered mesh
 #'@export
 #'@examples
-#' \dontshow{
-#' options("cores"=1)
-#' }
+#'if(rayvertex:::run_documentation()) {
 #' #Center the Cornell box and the R OBJ at the origin
-#' \donttest{
-#' center_mesh(generate_cornell_mesh()) %>% 
-#'   add_shape(center_mesh(obj_mesh(r_obj(),scale=100,angle=c(0,180,0)))) %>% 
+#' center_mesh(generate_cornell_mesh()) |>
+#'   add_shape(center_mesh(obj_mesh(r_obj(),scale=100,angle=c(0,180,0)))) |>
 #'   rasterize_scene(lookfrom=c(0,0,-1100),fov=40,lookat=c(0,0,0),
-#'                   light_info = directional_light(c(0.4,0.4,-1)) %>%
+#'                   light_info = directional_light(c(0.4,0.4,-1)) |>
 #'       add_light(point_light(c(0,450,0),  falloff_quad = 0.0, constant = 0.0002, falloff = 0.005)))
 #' }
 center_mesh = function(mesh) {
-  center = apply(apply(mesh$vertices,2,range),2,mean)
+  center_mat = matrix(c(Inf,-Inf),nrow=2,ncol=3)
+  for(j in seq_len(length(mesh$vertices))) {
+    center_tmp = apply(mesh$vertices[[j]],2,range)
+    center_mat[1,] = pmin(center_tmp[1,],center_mat[1,])
+    center_mat[2,] = pmax(center_tmp[2,],center_mat[2,])
+  }
+  center = apply(center_mat,2,mean)
+  
   mesh = translate_mesh(mesh, -center)
+  class(mesh) = c("ray_mesh", "list")
+  
   return(mesh)
 }
 
@@ -262,47 +300,48 @@ generate_rot_matrix = function(angle, order_rotation) {
 #'@return Rotated Mesh
 #'@export
 #'@examples
-#' \dontshow{
-#' options("cores"=1)
-#' }
+#'if(rayvertex:::run_documentation()) {
 #'#Rotate a mesh in the Cornell box
 #'robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
 #'
-#'\donttest{
-#'generate_cornell_mesh() %>% 
+#'generate_cornell_mesh() |>
 #' add_shape(rotate_mesh(translate_mesh(robj,c(400,0,155)),c(0,30,0), 
-#'                       pivot_point=c(400,0,155))) %>% 
+#'                       pivot_point=c(400,0,155))) |>
 #' add_shape(rotate_mesh(translate_mesh(robj,c(555/2,100,555/2)),c(-30,60,30), 
-#'                       pivot_point=c(555/2,100,555/2))) %>% 
+#'                       pivot_point=c(555/2,100,555/2))) |>
 #' add_shape(rotate_mesh(translate_mesh(robj,c(155,200,400)),c(-30,60,30), 
-#'                       pivot_point=c(155,200,400), order_rotation=c(3,2,1))) %>% 
+#'                       pivot_point=c(155,200,400), order_rotation=c(3,2,1))) |>
 #' rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #' }
 rotate_mesh = function(mesh, angle = c(0,0,0), pivot_point = c(0,0,0), order_rotation = c(1,2,3)) {
   angle = angle*pi/180
-  mesh$vertices[,1]  = mesh$vertices[,1]-pivot_point[1]
-  mesh$vertices[,2]  = mesh$vertices[,2]-pivot_point[2]
-  mesh$vertices[,3]  = mesh$vertices[,3]-pivot_point[3]
-  rot_mat = generate_rot_matrix(angle, order_rotation)
-  for(i in seq_len(nrow(mesh$vertices))) {
-    mesh$vertices[i,] = mesh$vertices[i,] %*% rot_mat
-  }
-  mesh$vertices[,1]  = mesh$vertices[,1]+pivot_point[1]
-  mesh$vertices[,2]  = mesh$vertices[,2]+pivot_point[2]
-  mesh$vertices[,3]  = mesh$vertices[,3]+pivot_point[3]
-
-  if(!is.null(mesh$normals) && nrow(mesh$normals) > 0) {
-    inv_t = t(solve(rot_mat))
-    for(i in seq_len(nrow(mesh$normals))) {
-      mesh$normals[i,] = mesh$normals[i,] %*% inv_t
+  for(j in seq_len(length(mesh$vertices))) {
+    mesh$vertices[[j]][,1]  = mesh$vertices[[j]][,1]-pivot_point[1]
+    mesh$vertices[[j]][,2]  = mesh$vertices[[j]][,2]-pivot_point[2]
+    mesh$vertices[[j]][,3]  = mesh$vertices[[j]][,3]-pivot_point[3]
+    rot_mat = generate_rot_matrix(angle, order_rotation)
+    for(i in seq_len(nrow(mesh$vertices[[j]]))) {
+      mesh$vertices[[j]][i,] = mesh$vertices[[j]][i,] %*% rot_mat
+    }
+    mesh$vertices[[j]][,1]  = mesh$vertices[[j]][,1]+pivot_point[1]
+    mesh$vertices[[j]][,2]  = mesh$vertices[[j]][,2]+pivot_point[2]
+    mesh$vertices[[j]][,3]  = mesh$vertices[[j]][,3]+pivot_point[3]
+  
+    if(!is.null(mesh$normals[[j]]) && nrow(mesh$normals[[j]]) > 0) {
+      inv_t = t(solve(rot_mat))
+      for(i in seq_len(nrow(mesh$normals[[j]]))) {
+        mesh$normals[[j]][i,] = mesh$normals[[j]][i,] %*% inv_t
+      }
     }
   }
+  class(mesh) = c("ray_mesh", "list")
+  
   return(mesh)
 }
 
 #'@title Set Material
 #'
-#'Add shape to a mesh
+#'@description Set the material(s) of the mesh.
 #'
 #'@param mesh The target mesh. 
 #'@param material Default `NULL`. You can pass the output of the `material_list()` function
@@ -339,19 +378,16 @@ rotate_mesh = function(mesh, angle = c(0,0,0), pivot_point = c(0,0,0), order_rot
 #'@return Shape with new material
 #'@export
 #'@examples
-#' \dontshow{
-#' options("cores"=1)
-#' }
+#'if(rayvertex:::run_documentation()) {
 #'#Set the material of an object
-#'\donttest{
-#'generate_cornell_mesh() %>% 
+#'generate_cornell_mesh() |>
 #'  add_shape(set_material(sphere_mesh(position=c(400,555/2,555/2),radius=40), 
-#'                         diffuse="purple", type="phong")) %>% 
+#'                         diffuse="purple", type="phong")) |>
 #'  add_shape(set_material(sphere_mesh(position=c(555/2,220,555/2),radius=40),
-#'                         dissolve=0.2,culling="none",diffuse="red")) %>% 
+#'                         dissolve=0.2,culling="none",diffuse="red")) |>
 #'  add_shape(set_material(sphere_mesh(position=c(155,300,555/2),radius=60), 
 #'                         material = material_list(diffuse="gold", type="phong", 
-#'                                                  ambient="gold", ambient_intensity=0.4))) %>% 
+#'                                                  ambient="gold", ambient_intensity=0.4))) |>
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #'  }
 set_material = function(mesh, material = NULL, id = NULL,
@@ -383,137 +419,57 @@ set_material = function(mesh, material = NULL, id = NULL,
                         reflection_sharpness      = 0.0) {
   culling = switch(culling, "back" = 1, "front" = 2, "none" = 3, 1)
   
-  if(!is.null(material)) {
-    diffuse                   = material$diffuse                   
-    ambient                   = material$ambient                   
-    specular                  = material$specular                  
-    transmittance             = material$transmittance             
-    emission                  = material$emission                  
-    shininess                 = material$shininess                 
-    ior                       = material$ior                       
-    dissolve                  = material$dissolve                  
-    illum                     = material$illum                     
-    texture_location          = material$texture_location          
-    normal_texture_location   = material$normal_texture_location   
-    specular_texture_location = material$specular_texture_location 
-    ambient_texture_location  = material$ambient_texture_location  
-    emissive_texture_location = material$emissive_texture_location 
-    diffuse_intensity         = material$diffuse_intensity         
-    specular_intensity        = material$specular_intensity        
-    emission_intensity        = material$emission_intensity        
-    ambient_intensity         = material$ambient_intensity        
-    culling                   = material$culling                   
-    type                      = material$type     
-    translucent               = material$translucent
-    toon_levels               = material$toon_levels      
-    toon_outline_width        = material$toon_outline_width       
-    toon_outline_color        = material$toon_outline_color   
-    reflection_intensity      = material$reflection_intensity        
-    reflection_sharpness      = material$reflection_sharpness   
-    
+  if(is.null(material)) {
+    material = list()
+    material$diffuse                    = convert_color(diffuse)              
+    material$ambient                    = convert_color(ambient)
+    material$specular                   = convert_color(specular)
+    material$transmittance              = convert_color(transmittance)
+    material$emission                   = convert_color(emission)
+    material$shininess                  = shininess                 
+    material$ior                        = ior                       
+    material$dissolve                   = dissolve                  
+    material$illum                      = illum                     
+    material$diffuse_texname           = texture_location          
+    material$normal_texname    = normal_texture_location   
+    material$specular_texname  = specular_texture_location 
+    material$ambient_texname   = ambient_texture_location  
+    material$emissive_texname  = emissive_texture_location 
+    material$diffuse_intensity          = diffuse_intensity         
+    material$specular_intensity         = specular_intensity        
+    material$emission_intensity         = emission_intensity        
+    material$ambient_intensity         = ambient_intensity         
+    material$culling                    = culling                   
+    material$type      = type                      
+    material$translucent = translucent               
+    material$toon_levels       = toon_levels               
+    material$toon_outline_width        = toon_outline_width        
+    material$toon_outline_color    = convert_color(toon_outline_color)   
+    material$reflection_intensity        = reflection_intensity        
+    material$reflection_sharpness    = reflection_sharpness      
   }
+  material_hash = digest::digest(material)
   
   if(!is.null(mesh$materials) && length(mesh$materials) > 0) {
     if(is.null(id)) {
       for(i in seq_len(length(mesh$materials))) {
-        mesh$materials[[i]] = list()
-        mesh$materials[[i]]$ambient              = convert_color(ambient)
-        mesh$materials[[i]]$diffuse              = convert_color(diffuse)
-        mesh$materials[[i]]$specular             = convert_color(specular) 
-        mesh$materials[[i]]$transmittance        = convert_color(transmittance)
-        mesh$materials[[i]]$emission             = convert_color(emission) 
-        mesh$materials[[i]]$shininess            = shininess
-        mesh$materials[[i]]$ior                  = ior              
-        mesh$materials[[i]]$dissolve             = dissolve         
-        mesh$materials[[i]]$illum                = illum            
-        mesh$materials[[i]]$ambient_texname      = ambient_texture_location  
-        mesh$materials[[i]]$diffuse_texname      = texture_location  
-        mesh$materials[[i]]$emissive_texname     = emissive_texture_location 
-        mesh$materials[[i]]$specular_texname     = specular_texture_location 
-        mesh$materials[[i]]$normal_texname       = normal_texture_location   
-        mesh$materials[[i]]$diffuse_intensity    = diffuse_intensity 
-        mesh$materials[[i]]$specular_intensity   = specular_intensity   
-        mesh$materials[[i]]$emission_intensity   = emission_intensity  
-        mesh$materials[[i]]$ambient_intensity    = ambient_intensity  
-        mesh$materials[[i]]$culling              = culling   
-        mesh$materials[[i]]$type                 = type   
-        mesh$materials[[i]]$translucent          = translucent
-        mesh$materials[[i]]$toon_levels          = toon_levels   
-        mesh$materials[[i]]$toon_outline_width   = toon_outline_width   
-        mesh$materials[[i]]$toon_outline_color   = convert_color(toon_outline_color)
-        mesh$materials[[i]]$reflection_intensity = reflection_intensity
-        mesh$materials[[i]]$reflection_sharpness = reflection_sharpness
-        
-        
+        mesh$materials[[i]] = material
       }
-      mesh$material_hashes[i] = digest::digest(mesh$materials[[i]])
+      mesh$material_hashes[i] = material_hash
       for(i in seq_len(length(mesh$shapes))) {
         mesh$shapes[[i]]$material_ids = rep(0,nrow(mesh$shapes[[i]]$indices))
       }
     } else {
-      mesh$materials[[id]] = list()
-      mesh$materials[[id]]$ambient              = convert_color(ambient)
-      mesh$materials[[id]]$diffuse              = convert_color(diffuse)
-      mesh$materials[[id]]$specular             = convert_color(specular) 
-      mesh$materials[[id]]$transmittance        = convert_color(transmittance)
-      mesh$materials[[id]]$emission             = convert_color(emission) 
-      mesh$materials[[id]]$shininess            = shininess
-      mesh$materials[[id]]$ior                  = ior              
-      mesh$materials[[id]]$dissolve             = dissolve         
-      mesh$materials[[id]]$illum                = illum            
-      mesh$materials[[id]]$ambient_texname      = ambient_texture_location  
-      mesh$materials[[id]]$diffuse_texname      = texture_location  
-      mesh$materials[[id]]$emissive_texname     = emissive_texture_location 
-      mesh$materials[[id]]$specular_texname     = specular_texture_location 
-      mesh$materials[[id]]$normal_texname       = normal_texture_location   
-      mesh$materials[[id]]$diffuse_intensity    = diffuse_intensity 
-      mesh$materials[[id]]$specular_intensity   = specular_intensity   
-      mesh$materials[[id]]$emission_intensity   = emission_intensity  
-      mesh$materials[[id]]$ambient_intensity    = ambient_intensity  
-      mesh$materials[[id]]$culling              = culling   
-      mesh$materials[[id]]$type                 = type   
-      mesh$materials[[id]]$translucent          = translucent
-      mesh$materials[[id]]$toon_levels          = toon_levels   
-      mesh$materials[[id]]$toon_outline_width   = toon_outline_width   
-      mesh$materials[[id]]$toon_outline_color   = convert_color(toon_outline_color)
-      mesh$materials[[id]]$reflection_intensity = reflection_intensity
-      mesh$materials[[id]]$reflection_sharpness = reflection_sharpness
-      
-      
+      mesh$materials[[id]] = material
     }
   } else {
     mesh$shapes[[1]]$material_ids = rep(0,nrow(mesh$shapes[[1]]$indices))
     
-    mesh$materials[[1]] = list()
-    mesh$materials[[1]]$ambient              = convert_color(ambient)
-    mesh$materials[[1]]$diffuse              = convert_color(diffuse) 
-    mesh$materials[[1]]$specular             = convert_color(specular) 
-    mesh$materials[[1]]$transmittance        = convert_color(transmittance)
-    mesh$materials[[1]]$emission             = convert_color(emission) 
-    mesh$materials[[1]]$shininess            = shininess
-    mesh$materials[[1]]$ior                  = ior              
-    mesh$materials[[1]]$dissolve             = dissolve         
-    mesh$materials[[1]]$illum                = illum            
-    mesh$materials[[1]]$ambient_texname      = ambient_texture_location  
-    mesh$materials[[1]]$diffuse_texname      = texture_location  
-    mesh$materials[[1]]$emissive_texname     = emissive_texture_location 
-    mesh$materials[[1]]$specular_texname     = specular_texture_location 
-    mesh$materials[[1]]$normal_texname       = normal_texture_location   
-    mesh$materials[[1]]$diffuse_intensity    = diffuse_intensity 
-    mesh$materials[[1]]$specular_intensity   = specular_intensity   
-    mesh$materials[[1]]$emission_intensity   = emission_intensity  
-    mesh$materials[[1]]$ambient_intensity    = ambient_intensity  
-    mesh$materials[[1]]$culling              = culling    
-    mesh$materials[[1]]$type                 = type    
-    mesh$materials[[1]]$translucent          = translucent   
-    mesh$materials[[1]]$toon_levels          = toon_levels   
-    mesh$materials[[1]]$toon_outline_width   = toon_outline_width   
-    mesh$materials[[1]]$toon_outline_color   = convert_color(toon_outline_color)
-    mesh$materials[[1]]$reflection_intensity = reflection_intensity
-    mesh$materials[[1]]$reflection_sharpness = reflection_sharpness
+    mesh$materials[[1]] = material
     
-    mesh$material_hashes[1] = digest::digest(mesh$materials[[1]])
+    mesh$material_hashes[1] = material_hash
   }
+  class(mesh) = c("ray_mesh", "list")
   return(mesh)
 }
 
@@ -533,7 +489,7 @@ generate_rot_matrix = function(angle, order_rotation) {
 
 #'@title Change Material
 #'
-#'Change individual material properties, leaving others alone.
+#'@description Change individual material properties, leaving others alone.
 #'
 #'@param mesh Mesh to change.
 #'@param id Default `NULL`. Either a number specifying the material to change, or a character vector 
@@ -568,18 +524,15 @@ generate_rot_matrix = function(angle, order_rotation) {
 #'@return Shape with new material settings
 #'@export
 #'@examples
-#' \dontshow{
-#' options("cores"=1)
-#' }
+#'if(rayvertex:::run_documentation()) {
 #'p_sphere = sphere_mesh(position=c(555/2,555/2,555/2), 
 #'                       radius=40,material=material_list(diffuse="purple"))
-#'\donttest{            
-#'generate_cornell_mesh() %>% 
-#'  add_shape(p_sphere) %>% 
-#'  add_shape(change_material(translate_mesh(p_sphere,c(200,0,0)),diffuse="red")) %>% 
-#'  add_shape(change_material(translate_mesh(p_sphere,c(100,0,0)),dissolve=0.5)) %>% 
-#'  add_shape(change_material(translate_mesh(p_sphere,c(-100,0,0)),type="phong")) %>% 
-#'  add_shape(change_material(translate_mesh(p_sphere,c(-200,0,0)),type="phong",shininess=30)) %>% 
+#'generate_cornell_mesh() |>
+#'  add_shape(p_sphere) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(200,0,0)),diffuse="red")) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(100,0,0)),dissolve=0.5)) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(-100,0,0)),type="phong")) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(-200,0,0)),type="phong",shininess=30)) |>
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #'}
 change_material = function(mesh, id = NULL, 
@@ -715,12 +668,14 @@ change_material = function(mesh, id = NULL,
   } else {
    stop("No materials detected")
   }
+  class(mesh) = c("ray_mesh", "list")
+  
   return(mesh)
 }
 
 #'@title Material List
 #'
-#'Generate a material properties list.
+#'@description Generate a material properties list.
 #'
 #'@param diffuse                   Default `c(0.5,0.5,0.5)`. The diffuse color.
 #'@param ambient                   Default `c(0,0,0)`. The ambient color.
@@ -752,16 +707,14 @@ change_material = function(mesh, id = NULL,
 #'@return List of material properties.
 #'@export
 #'@examples
-#' \dontshow{
-#' options("cores"=1)
-#' }
+#'if(rayvertex:::run_documentation()) {
 #'mat_prop = material_list(diffuse="purple", type="phong", shininess=20,
 #'                         ambient="purple", ambient_intensity=0.3,
 #'                         specular = "red", specular_intensity=2)
 #'                         
 #'p_sphere = sphere_mesh(position=c(555/2,555/2,555/2), 
 #'                       radius=40,material=mat_prop)
-#'\donttest{
+#'                       
 #'rasterize_scene(p_sphere, light_info=directional_light(direction=c(0.1,0.6,-1)))
 #'}
 material_list = function(diffuse                   = c(0.8,0.8,0.8),
@@ -791,20 +744,20 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
                          reflection_intensity      = 0.0,
                          reflection_sharpness      = 0.0) {
   material_props = 
-  list(diffuse                   = diffuse                   ,
-       ambient                   = ambient                   ,
-       specular                  = specular                  ,
-       transmittance             = transmittance             ,
-       emission                  = emission                  ,
+  list(diffuse                   = convert_color(diffuse)                   ,
+       ambient                   = convert_color(ambient)                   ,
+       specular                  = convert_color(specular)                  ,
+       transmittance             = convert_color(transmittance)             ,
+       emission                  = convert_color(emission)                  ,
        shininess                 = shininess                 ,
        ior                       = ior                       ,
        dissolve                  = dissolve                  ,
        illum                     = illum                     ,
-       texture_location          = texture_location          ,
-       normal_texture_location   = normal_texture_location   ,
-       specular_texture_location = specular_texture_location ,
-       ambient_texture_location  = ambient_texture_location  ,
-       emissive_texture_location = emissive_texture_location ,
+       ambient_texname           = ambient_texture_location          ,
+       diffuse_texname           = texture_location   ,
+       emissive_texname          = emissive_texture_location ,
+       specular_texname          = specular_texture_location  ,
+       normal_texname            = normal_texture_location ,
        diffuse_intensity         = diffuse_intensity         ,
        specular_intensity        = specular_intensity        ,
        emission_intensity        = emission_intensity        ,
@@ -814,9 +767,17 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
        translucent               = translucent               ,
        toon_levels               = toon_levels               ,
        toon_outline_width        = toon_outline_width        ,
-       toon_outline_color        = toon_outline_color        ,
+       toon_outline_color        = convert_color(toon_outline_color)        ,
        reflection_intensity      = reflection_intensity      ,
        reflection_sharpness      = reflection_sharpness)
+  stopifnot(length(material_props$diffuse) == 3)
+  stopifnot(length(material_props$ambient) == 3)
+  stopifnot(length(material_props$specular) == 3)
+  stopifnot(length(material_props$transmittance) == 3)
+  stopifnot(length(material_props$emission) == 3)
+  stopifnot(length(material_props$toon_outline_color) == 3)
+  
+  
   return(material_props)
 }
 
@@ -828,12 +789,14 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
 #'@keywords internal
 generate_toon_outline = function(single_obj, material, scale = 1) {
   if((material$type == "toon" || material$type == "toon_phong") && material$toon_outline_width != 0.0) {
-    bbox = apply(single_obj$vertices,2,range)
+    bbox = apply(single_obj$vertices[[1]],2,range)
     bbox_size = bbox[2,] - bbox[1,]
     scaleval = (bbox_size + material$toon_outline_width)/bbox_size
-    single_obj = single_obj %>% 
-      scale_mesh(scale = scaleval) %>% 
+    single_obj = single_obj |>
+      scale_mesh(scale = scaleval) |>
       set_material(diffuse=material$toon_outline_color , culling = "front", type="color")
   }
+  class(single_obj) = c("ray_mesh", "list")
+  
   return(single_obj)
 }

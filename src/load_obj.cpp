@@ -78,11 +78,10 @@ List load_obj(std::string inputfile, std::string basedir) {
     single_shape["indices"]            = Rcpp::transpose(IntegerMatrix(nv_face, inds.size()/nv_face,      inds.begin()      ));
     single_shape["tex_indices"]        = Rcpp::transpose(IntegerMatrix(nv_face, tex_inds.size()/nv_face,  tex_inds.begin()  ));
     single_shape["norm_indices"]       = Rcpp::transpose(IntegerMatrix(nv_face, norm_inds.size()/nv_face, norm_inds.begin() ));
-    single_shape["material_ids"]       = Rcpp::transpose(NumericMatrix(1L, mats.size(), mats.begin()));
+    single_shape["material_ids"]       = Rcpp::transpose(IntegerMatrix(1L, mats.size(), mats.begin()));
     single_shape["has_vertex_tex"]     = LogicalVector(inds.size()/nv_face,inds.size() == tex_inds.size());
     single_shape["has_vertex_normals"] = LogicalVector(inds.size()/nv_face,inds.size() == norm_inds.size());
-    
-    single_shape["name"]         = shapes[s].name;
+
     shape_list[s]                = single_shape;
   }
   for(unsigned int i=0; i < materials.size(); i++) {
@@ -106,9 +105,9 @@ List load_obj(std::string inputfile, std::string basedir) {
     set_item( out, 12, _["specular_texname"]   = m.specular_texname,  names) ;
     set_item( out, 13, _["normal_texname"]     = m.normal_texname  ,  names) ;
     set_item( out, 14, _["diffuse_intensity"]  = 1.0  , names) ;
-    set_item( out, 15, _["emission_intensity"] = 1.0, names) ;
-    set_item( out, 16, _["specular_intensity"] = 1.0, names) ;
-    set_item( out, 17, _["ambient_intensity"] = 1.0, names) ;
+    set_item( out, 15, _["emission_intensity"] = 0.0, names) ;
+    set_item( out, 16, _["specular_intensity"] = 0.0, names) ;
+    set_item( out, 17, _["ambient_intensity"] = 0.0, names) ;
     set_item( out, 18, _["culling"] = culltype, names) ;
     set_item( out, 19, _["type"] = "diffuse", names) ;
     set_item( out, 20, _["translucent"] = true, names) ;
@@ -124,8 +123,8 @@ List load_obj(std::string inputfile, std::string basedir) {
   List return_val;
   return_val["shapes"]    = shape_list;
   return_val["materials"] = material_list;
-  return_val["vertices"]  = Rcpp::transpose(NumericMatrix(3L, attrib.vertices.size()/3L, attrib.vertices.begin()));
-  return_val["texcoords"] = Rcpp::transpose(NumericMatrix(2L, attrib.texcoords.size()/2L, attrib.texcoords.begin()));
-  return_val["normals"]   = Rcpp::transpose(NumericMatrix(3L, attrib.normals.size()/3L, attrib.normals.begin()));
+  return_val["vertices"]  = List::create(Rcpp::transpose(NumericMatrix(3L, attrib.vertices.size()/3L, attrib.vertices.begin())));
+  return_val["texcoords"] = List::create(Rcpp::transpose(NumericMatrix(2L, attrib.texcoords.size()/2L, attrib.texcoords.begin())));
+  return_val["normals"]   = List::create(Rcpp::transpose(NumericMatrix(3L, attrib.normals.size()/3L, attrib.normals.begin())));
   return return_val;
 }
