@@ -133,3 +133,23 @@ run_documentation = function() {
   return(identical(Sys.getenv("IN_PKGDOWN"), "true"))
 }
 
+#' Verify Vertex Shader
+#' 
+#' @return bool
+#'
+#' @keywords internal
+verify_vertex_shader = function(vertex_shader) {
+  verify_matrix = matrix(1:18, ncol = 3, nrow = 6)
+  processed_matrix = t(apply(verify_matrix, 1, vertex_shader))
+  
+  if(ncol(processed_matrix) != 3) {
+    return(FALSE)
+  }
+  if(nrow(processed_matrix) != 6) {
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
+
+

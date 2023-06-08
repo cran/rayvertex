@@ -455,7 +455,9 @@ List rasterize(List mesh,
     bool is_translucent = as<bool>(single_material["translucent"]);
     Float toon_levels = as<Float>(single_material["toon_levels"]);
     Float reflection_intensity = as<Float>(single_material["reflection_intensity"]);
-    
+    bool two_sided = as<bool>(single_material["two_sided"]);
+    //Change cull type to none if two sided
+    cull_type = !two_sided ? cull_type : 3;
     
     bool has_texture_single          = has_texture(i);
     bool has_ambient_texture_single  = has_ambient_texture(i);
@@ -522,7 +524,8 @@ List rasterize(List mesh,
                                  vec_varying_tri,
                                  vec_varying_pos,
                                  vec_varying_world_nrm,vec_varying_ndc_tri,vec_varying_nrm,
-                                 reflection_maps[i], has_reflection_map(i), has_refraction(i));
+                                 reflection_maps[i], has_reflection_map(i), has_refraction(i),
+                                 two_sided);
     } else if (type == 3) {
       shader = new PhongShader(Model, Projection, View, viewport,
                                has_shadow_map,
@@ -692,7 +695,7 @@ List rasterize(List mesh,
                                vec_varying_tri,
                                vec_varying_pos,
                                vec_varying_world_nrm,vec_varying_ndc_tri,vec_varying_nrm,
-                               reflection_map_default, false, false));
+                               reflection_map_default, false, false, false));
   } else if (typevals(0) == 3 || typevals(0) == 6 || typevals(0) == 7) {
     shaders.push_back(new PhongShader(Model, Projection, View, viewport,
                              has_shadow_map,
@@ -740,7 +743,7 @@ List rasterize(List mesh,
                                  vec_varying_pos,
                                  vec_varying_world_nrm,vec_varying_ndc_tri,vec_varying_nrm,
                                  reflection_map_default, false, false));
-  }
+  } 
   print_time(verbose, "Initialized shaders" );
   
   
@@ -1097,6 +1100,7 @@ List rasterize(List mesh,
         vec3 origin(xxbuffer(x,y), yybuffer(x,y), zzbuffer(x,y));
         vec3 normal(nxbuffer(x,y), nybuffer(x,y), nzbuffer(x,y));
         normal = normalize(normal);
+        normal *= dot(normal, vec3(0,0,1)) < 0 ? -1 : 1;
         int noisex = x % 4;
         int noisey = y % 4;
         vec3 rvec = noise[noisex + 8*noisey];

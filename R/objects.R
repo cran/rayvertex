@@ -194,7 +194,7 @@ cone_mesh = function(start = c(0,0,0), end=c(0,1,0),
       theta = 0
     }
   } else {
-    theta = atan2(-length_xy, (end[2]-start[2]))/pi*180
+    theta = atan2(as.numeric(-length_xy), as.numeric(end[2]-start[2]))/pi*180
   }
   fulllength = sqrt(sum((end-start)^2))
   angle = c(0, -phi, theta)
@@ -298,7 +298,7 @@ arrow_mesh = function(start = c(0,0,0), end = c(0,1,0), radius_top = 0.5, radius
       theta = 0
     }
   } else {
-    theta = atan2(-length_xy, (end[2]-start[2]))/pi*180
+    theta = atan2(as.numeric(-length_xy), as.numeric(end[2]-start[2]))/pi*180
   }
   fulllength = sqrt(sum((end-start)^2))
   angle = c(0, -phi, theta)
@@ -476,7 +476,7 @@ segment_mesh = function(start = c(0,-1,0), end = c(0,1,0), radius = 0.5,
   y = (start[2] + end[2])/2
   z = (start[3] + end[3])/2
   order_rotation = c(3, 2, 1)
-  phi =  atan2( as.numeric(end[1]-start[1]), as.numeric(end[3]-start[3]))/pi*180+90
+  phi =  atan2( as.numeric(end[1]-start[1]), as.numeric(end[3]-start[3]))/pi*180 + 90
   
   length_xy = sqrt((end[1]-start[1])^2 + (end[3]-start[3])^2)
   if(end[1] == start[1] && end[3] == start[3]) {
@@ -486,7 +486,7 @@ segment_mesh = function(start = c(0,-1,0), end = c(0,1,0), radius = 0.5,
       theta = 0
     }
   } else {
-    theta = atan2(-length_xy, (end[2]-start[2]))/pi*180
+    theta = atan2(as.numeric(-length_xy), as.numeric((end[2]-start[2])))/pi*180
   }
   fulllength = sqrt(sum((end-start)^2))
   angle = c(0, -phi, theta)
@@ -734,7 +734,7 @@ obj_mesh = function(filename, center = FALSE, position = c(0,0,0), scale = c(1,1
   if(any(scale != 1)) {
     obj_loaded = scale_mesh(obj_loaded, scale=scale)
   }
-  if(length(obj_loaded$materials) == 0 && is.null(material)) {
+  if(length(obj_loaded$materials[[1]]) == 0 && is.null(material)) {
     material = material_list()
   }
   if(!is.null(material)) {
@@ -904,6 +904,13 @@ mesh3d_mesh = function(mesh, center = FALSE, position = c(0,0,0), scale = c(1,1,
                        angle = c(0,0,0), pivot_point = c(0,0,0), order_rotation = c(1,2,3), materialspath = NULL,
                        material = material_list()) {
   mat_vals = mesh$material
+  if(!is.null(mesh$texcoords)) {
+    texcoords = t(mesh$texcoords)
+    tex_indices = t(mesh$it)-1
+  } else {
+    texcoords = NULL
+    tex_indices = NULL
+  }
   if(!is.null(mat_vals)) {
     if(!is.null(mat_vals$color)) {
       diffuse_val = mat_vals$color
@@ -927,6 +934,8 @@ mesh3d_mesh = function(mesh, center = FALSE, position = c(0,0,0), scale = c(1,1,
     }
     mesh = construct_mesh(vertices = t(mesh$vb)[,1:3], 
                           indices = t(mesh$it)-1,
+                          texcoords = texcoords,
+                          tex_indices = tex_indices,
                           material = material_list(
                             diffuse = diffuse_val,
                             dissolve = dissolve_val,
@@ -935,6 +944,8 @@ mesh3d_mesh = function(mesh, center = FALSE, position = c(0,0,0), scale = c(1,1,
   } else {
     mesh = construct_mesh(vertices = t(mesh$vb)[,1:3], 
                           indices = t(mesh$it)-1,
+                          tex_indices = tex_indices,
+                          texcoords = texcoords,
                           material = material)
   }
 
