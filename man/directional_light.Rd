@@ -7,11 +7,11 @@
 directional_light(direction = c(0, 1, 0), color = "white", intensity = 1)
 }
 \arguments{
-\item{direction}{Default `c(0,1,0)`. Direction of the light.}
+\item{direction}{Default \code{c(0,1,0)}. Direction of the light.}
 
-\item{color}{Default `white`. COlor of the light.}
+\item{color}{Default \code{white}. COlor of the light.}
 
-\item{intensity}{Default `1`. Intensity of the light.}
+\item{intensity}{Default \code{1}. Intensity of the light.}
 }
 \value{
 A matrix representing the light information.
@@ -20,7 +20,7 @@ A matrix representing the light information.
 Generate Directional Lights
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Add a light to scene (manually specify the light automatically added to the Cornell Box
 lights = point_light(position=c(555/2,450,555/2),
                     falloff_quad = 0.0, constant = 0.0002, falloff = 0.005)

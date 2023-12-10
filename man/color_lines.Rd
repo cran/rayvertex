@@ -9,7 +9,7 @@ color_lines(lines, color = "white")
 \arguments{
 \item{lines}{The line scene.}
 
-\item{color}{Default `white`. The color to convert the lines to.}
+\item{color}{Default \code{white}. The color to convert the lines to.}
 }
 \value{
 Colored line matrix.
@@ -18,7 +18,7 @@ Colored line matrix.
 Color Lines
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a cube out of lines
 cube_outline = generate_line(start = c(-1, -1, -1), end = c(-1, -1, 1)) |>
   add_lines(generate_line(start = c(-1, -1, -1), end = c(-1, 1, -1))) |>

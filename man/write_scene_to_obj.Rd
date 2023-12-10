@@ -11,9 +11,9 @@ write_scene_to_obj(scene, filename, materials = TRUE, fileext = ".obj")
 
 \item{filename}{The filename for the OBJ file.}
 
-\item{materials}{Default `TRUE`. Whether to write an MTL file to specify the materials for the OBJ.}
+\item{materials}{Default \code{TRUE}. Whether to write an MTL file to specify the materials for the OBJ.}
 
-\item{fileext}{Default `".obj"`. The file extension to add to the filename.}
+\item{fileext}{Default \code{".obj"}. The file extension to add to the filename.}
 }
 \value{
 None
@@ -22,7 +22,7 @@ None
 Writes the current scene to a Wavefront OBJ file, with or without materials
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 tmpfile = tempfile(fileext = ".obj")
 write_scene_to_obj(generate_cornell_mesh(), tmpfile)
 }

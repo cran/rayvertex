@@ -49,17 +49,18 @@
 #'@param verbose Default `FALSE`. Prints out timing information.
 #'@param vertex_transform Default `NULL`. A function that transforms the vertex locations, based on their location.
 #'Function should takes a length-3 numeric vector and returns another length-3 numeric vector as the output.
+#'@param validate_scene Default `TRUE`. Whether to validate the scene input.
 #'
 #'@return Rasterized image.
 #'@export
 #'@examples
-#'if(rayvertex:::run_documentation()) {
+#'if(run_documentation()) {
 #'#Let's load the cube OBJ file included with the package
 #'
 #'rasterize_scene(cube_mesh(),lookfrom=c(2,4,10), 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #' }
-#' if(rayvertex:::run_documentation()) {
+#' if(run_documentation()) {
 #'#Flatten the cube, translate downwards, and set to grey
 #'base_model = cube_mesh() |>
 #'  scale_mesh(scale=c(5,0.2,5)) |>
@@ -69,7 +70,7 @@
 #'rasterize_scene(base_model, lookfrom=c(2,4,10), 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #' }
-#' if(rayvertex:::run_documentation()) {           
+#' if(run_documentation()) {           
 #'#load the R OBJ file, scale it down, color it blue, and add it to the grey base
 #'r_model = obj_mesh(r_obj()) |>
 #'  scale_mesh(scale=0.5) |>
@@ -79,19 +80,19 @@
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #' }
-#' if(rayvertex:::run_documentation()) {
+#' if(run_documentation()) {
 #'#Zoom in and reduce the shadow mapping intensity
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,shadow_map = TRUE, shadow_map_intensity=0.3,
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #'}
-#' if(rayvertex:::run_documentation()) {
+#' if(run_documentation()) {
 #'#Include the resolution (4x) of the shadow map for less pixellation around the edges
 #'#Also decrease the shadow_map_bias slightly to remove the "peter panning" floating shadow effect
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
 #'               shadow_map_dims=4, 
 #'               light_info = directional_light(direction=c(0.5,1,0.7)))
 #'}
-#' if(rayvertex:::run_documentation()) {
+#' if(run_documentation()) {
 #'#Add some more directional lights and change their color
 #' lights = directional_light(c(0.7,1.1,-0.9),color = "orange",intensity = 1) |>
 #'            add_light(directional_light(c(0.7,1,1),color = "dodgerblue",intensity = 1)) |>
@@ -99,7 +100,7 @@
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
 #'               light_info = lights)
 #'}
-#' if(rayvertex:::run_documentation()) {
+#' if(run_documentation()) {
 #'#Add some point lights
 #'lights_p = lights |>
 #'  add_light(point_light(position=c(-1,1,0),color="red", intensity=2)) |>
@@ -107,12 +108,12 @@
 #'rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
 #'               light_info = lights_p)
 #'}
-#' if(rayvertex:::run_documentation()) {
+#' if(run_documentation()) {
 #'#change the camera position
 #'rasterize_scene(r_model, lookfrom=c(-2,2,-10), fov=10,
 #'               light_info = lights_p)
 #'}
-#' if(rayvertex:::run_documentation()) {
+#' if(run_documentation()) {
 #'               
 #'#Add a spiral of lines around the model by generating a matrix of line segments
 #' t = seq(0,8*pi,length.out=361)
@@ -145,7 +146,7 @@ rasterize_scene  = function(scene,
                            block_size = 4, shape = NULL, line_offset = 0.00001,
                            ortho_dimensions = c(1,1), bloom = FALSE, antialias_lines = TRUE,
                            environment_map= "", background_sharpness = 1.0, verbose=FALSE,
-                           vertex_transform = NULL) {
+                           vertex_transform = NULL, validate_scene = TRUE) {
   init_time()
   if(!is.null(attr(scene,"cornell"))) {
     corn_message = "Setting default values for Cornell box: "
@@ -177,6 +178,10 @@ rasterize_scene  = function(scene,
     if(attr(scene,"cornell_light")) {
       light_info = add_light(light_info,point_light(c(555/2,450,555/2),  falloff_quad = 0.0, constant = 0.0002, falloff = 0.005))
     }
+  }
+  print_time(verbose, "Validating Mesh")
+  if(validate_scene) {
+    validate_mesh(scene)
   }
   #Get the scene down to one vertex/texcoord/normal matrix, and adjust indices to match
   print_time(verbose, "Pre-processing scene")
@@ -233,12 +238,14 @@ rasterize_scene  = function(scene,
   if(length(obj$materials) > 0) {
     has_texture          = rep(FALSE,length(obj$materials))
     has_ambient_texture  = rep(FALSE,length(obj$materials))
+    has_bump_texture     = rep(FALSE,length(obj$materials))
     has_normal_texture   = rep(FALSE,length(obj$materials))
     has_specular_texture = rep(FALSE,length(obj$materials))
     has_emissive_texture = rep(FALSE,length(obj$materials))
   } else {
     use_default_material = TRUE
     has_texture          = FALSE
+    has_bump_texture     = FALSE
     has_ambient_texture  = FALSE
     has_normal_texture   = FALSE
     has_specular_texture = FALSE
@@ -248,6 +255,10 @@ rasterize_scene  = function(scene,
     if(!is.null(obj$materials[[i]]$diffuse_texname) && obj$materials[[i]]$diffuse_texname != "") {
       has_texture[i] = TRUE
       obj$materials[[i]]$diffuse_texname = path.expand(obj$materials[[i]]$diffuse_texname)
+    }
+    if(!is.null(obj$materials[[i]]$bump_texname) && obj$materials[[i]]$bump_texname != "") {
+      has_bump_texture[i] = TRUE
+      obj$materials[[i]]$bump_texname = path.expand(obj$materials[[i]]$bump_texname)
     }
     if(!is.null(obj$materials[[i]]$ambient_texname) && obj$materials[[i]]$ambient_texname != "") {
       has_ambient_texture[i] = TRUE
@@ -271,11 +282,7 @@ rasterize_scene  = function(scene,
   print_time(verbose, "Processed texture filenames")
   
 
-  if(!is.null(options("cores")[[1]])) {
-    numbercores = options("cores")[[1]]
-  } else {
-    numbercores = parallel::detectCores()
-  }
+  numbercores = getOption("cores", default = getOption("Ncpus", default = parallel::detectCores()))
   if(!parallel) {
     numbercores = 1
   }
@@ -396,6 +403,7 @@ rasterize_scene  = function(scene,
                         has_tex_vec = has_tex, #This just determines whether to include tex indices
                         has_texture,
                         has_ambient_texture,
+                        has_bump_texture,
                         has_normal_texture,
                         has_specular_texture,
                         has_emissive_texture,

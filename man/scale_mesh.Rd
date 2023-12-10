@@ -9,9 +9,9 @@ scale_mesh(mesh, scale = 1, center = c(0, 0, 0))
 \arguments{
 \item{mesh}{The mesh.}
 
-\item{scale}{Default `c(1,1,1)`. The scale amount, per axis.}
+\item{scale}{Default \code{c(1,1,1)}. The scale amount, per axis.}
 
-\item{center}{Default `c(0,0,0)`. The center of the scale.}
+\item{center}{Default \code{c(0,0,0)}. The center of the scale.}
 }
 \value{
 Scaled mesh
@@ -20,7 +20,7 @@ Scaled mesh
 Scale Mesh
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Scale a mesh in the Cornell box
 robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
 

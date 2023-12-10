@@ -16,15 +16,15 @@ point_light(
 \arguments{
 \item{position}{A two-dimensional matrix, where each entry in the matrix is the elevation at that point. All points are assumed to be evenly spaced.}
 
-\item{color}{Default `400`. Width of the rendered image.}
+\item{color}{Default \code{400}. Width of the rendered image.}
 
-\item{intensity}{Default `1`. Intensity of the point light.}
+\item{intensity}{Default \code{1}. Intensity of the point light.}
 
-\item{constant}{Default `1`. Constant term. See description for details.}
+\item{constant}{Default \code{1}. Constant term. See description for details.}
 
-\item{falloff}{Default `1`. Linear falloff term. See description for details.}
+\item{falloff}{Default \code{1}. Linear falloff term. See description for details.}
 
-\item{falloff_quad}{Default `1`. Quadratic falloff term. See description for details.}
+\item{falloff_quad}{Default \code{1}. Quadratic falloff term. See description for details.}
 }
 \value{
 A matrix representing the light information.
@@ -35,7 +35,7 @@ The falloff of the point light intensity is given by the following equation (ref
 Intensity = intensity / (constant + falloff * distance + falloff_quad * (distance * distance));
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Add point lights and vary the intensity
 lights_int = point_light(position=c(100,100,400), color="white", intensity=0.125,
                       falloff_quad = 0.0, constant = 0.0002, falloff = 0.005) |>

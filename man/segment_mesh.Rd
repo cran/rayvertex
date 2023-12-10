@@ -15,22 +15,22 @@ segment_mesh(
 )
 }
 \arguments{
-\item{start}{Default `c(0, 0, 0)`. Base of the segment, specifying `x`, `y`, `z`.}
+\item{start}{Default \code{c(0, 0, 0)}. Base of the segment, specifying \code{x}, \code{y}, \code{z}.}
 
-\item{end}{Default `c(0, 1, 0)`. End of the segment, specifying `x`, `y`, `z`.}
+\item{end}{Default \code{c(0, 1, 0)}. End of the segment, specifying \code{x}, \code{y}, \code{z}.}
 
-\item{radius}{Default `0.5`. Radius of the cylinder.}
+\item{radius}{Default \code{0.5}. Radius of the cylinder.}
 
-\item{direction}{Default `NA`. Alternative to `start` and `end`, specify the direction (via 
-a length-3 vector) of the arrow. Arrow will be centered at `start`, and the length will be
+\item{direction}{Default \code{NA}. Alternative to \code{start} and \code{end}, specify the direction (via
+a length-3 vector) of the arrow. Arrow will be centered at \code{start}, and the length will be
 determined by the magnitude of the direction vector.}
 
-\item{from_center}{Default `TRUE`. If orientation specified via `direction`, setting this argument
-to `FALSE` will make `start` specify the bottom of the cone, instead of the middle.}
+\item{from_center}{Default \code{TRUE}. If orientation specified via \code{direction}, setting this argument
+to \code{FALSE} will make \code{start} specify the bottom of the cone, instead of the middle.}
 
-\item{square}{Default `FALSE`. If `TRUE`, will use a square instead of a circle for the cylinder.}
+\item{square}{Default \code{FALSE}. If \code{TRUE}, will use a square instead of a circle for the cylinder.}
 
-\item{material}{Default `material_list()` (default values). Specify the material of the object.}
+\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -39,13 +39,13 @@ List describing the mesh.
 Segment 3D Model
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a segment in the cornell box. 
 generate_cornell_mesh() |>
   add_shape(segment_mesh(start = c(100, 100, 100), end = c(455, 455, 455), radius = 50)) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 # Draw a line graph representing a normal distribution, but with metal:
 xvals = seq(-3, 3, length.out = 30)
 yvals = dnorm(xvals)
@@ -63,7 +63,7 @@ generate_cornell_mesh() |>
   add_shape(scene_list) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Draw the outline of a cube:
 
 cube_outline = segment_mesh(start = c(100, 100, 100), end = c(100, 100, 455), radius = 10) |>
@@ -83,7 +83,7 @@ generate_cornell_mesh() |>
   add_shape(set_material(cube_outline,diffuse="dodgerblue",type="phong")) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
   }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Shrink and rotate the cube
 generate_cornell_mesh() |>
   add_shape(

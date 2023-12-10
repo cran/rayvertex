@@ -14,17 +14,17 @@ yz_rect_mesh(
 )
 }
 \arguments{
-\item{position}{Default `c(0,0,0)`. Position of the mesh.}
+\item{position}{Default \code{c(0,0,0)}. Position of the mesh.}
 
-\item{scale}{Default `c(1,1,1)`. Scale of the mesh. Can also be a single numeric value scaling all axes uniformly.}
+\item{scale}{Default \code{c(1,1,1)}. Scale of the mesh. Can also be a single numeric value scaling all axes uniformly.}
 
-\item{angle}{Default `c(0,0,0)`. Angle to rotate the mesh.}
+\item{angle}{Default \code{c(0,0,0)}. Angle to rotate the mesh.}
 
-\item{pivot_point}{Default `c(0,0,0)`. Point around which to rotate the mesh.}
+\item{pivot_point}{Default \code{c(0,0,0)}. Point around which to rotate the mesh.}
 
-\item{order_rotation}{Default `c(1,2,3)`. Order to rotate the axes.}
+\item{order_rotation}{Default \code{c(1,2,3)}. Order to rotate the axes.}
 
-\item{material}{Default `material_list()` (default values). Specify the material of the object.}
+\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -33,13 +33,13 @@ List describing the mesh.
 YZ Rectangle 3D Model
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 generate_cornell_mesh() |>
   add_shape(yz_rect_mesh(position = c(100, 100, 555/2), scale=c(1,200,200), angle=c(0,0,0),
              material = material_list(diffuse = "purple"))) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Need to flip it around to see the other side
 generate_cornell_mesh() |>
   add_shape(yz_rect_mesh(position = c(500, 100, 555/2), scale=200, angle=c(0,180,0),

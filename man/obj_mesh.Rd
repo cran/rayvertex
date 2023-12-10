@@ -6,35 +6,35 @@
 \usage{
 obj_mesh(
   filename,
-  center = FALSE,
   position = c(0, 0, 0),
   scale = c(1, 1, 1),
   angle = c(0, 0, 0),
   pivot_point = c(0, 0, 0),
   order_rotation = c(1, 2, 3),
   materialspath = NULL,
+  center = FALSE,
   material = NULL
 )
 }
 \arguments{
 \item{filename}{OBJ filename.}
 
-\item{center}{Default `FALSE`. Whether to center the mesh.}
+\item{position}{Default \code{c(0,0,0)}. Position of the mesh.}
 
-\item{position}{Default `c(0,0,0)`. Position of the mesh.}
+\item{scale}{Default \code{c(1,1,1)}. Scale of the mesh. Can also be a single numeric value scaling all axes uniformly.}
 
-\item{scale}{Default `c(1,1,1)`. Scale of the mesh. Can also be a single numeric value scaling all axes uniformly.}
+\item{angle}{Default \code{c(0,0,0)}. Angle to rotate the mesh.}
 
-\item{angle}{Default `c(0,0,0)`. Angle to rotate the mesh.}
+\item{pivot_point}{Default \code{c(0,0,0)}. Point around which to rotate the mesh.}
 
-\item{pivot_point}{Default `c(0,0,0)`. Point around which to rotate the mesh.}
+\item{order_rotation}{Default \code{c(1,2,3)}. Order to rotate the axes.}
 
-\item{order_rotation}{Default `c(1,2,3)`. Order to rotate the axes.}
+\item{materialspath}{Default \code{NULL}. Path to the MTL file, if different from the OBJ file.}
 
-\item{materialspath}{Default `NULL`. Path to the MTL file, if different from the OBJ file.}
+\item{center}{Default \code{FALSE}. Whether to center the mesh.}
 
-\item{material}{Default `NULL`, read from the MTL file. If not `NULL`, this accepts the output
-from the `material_list()` function to specify the material.}
+\item{material}{Default \code{NULL}, read from the MTL file. If not \code{NULL}, this accepts the output
+from the \code{material_list()} function to specify the material.}
 }
 \value{
 List describing the mesh.
@@ -43,7 +43,7 @@ List describing the mesh.
 OBJ Mesh 3D Model
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Read in the provided 3D R mesh
 generate_cornell_mesh(ceiling=FALSE) |> 
   add_shape(obj_mesh(r_obj(),position=c(555/2,0,555/2),scale=150,angle=c(0,180,0))) |> 

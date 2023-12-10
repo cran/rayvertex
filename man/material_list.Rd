@@ -10,16 +10,18 @@ material_list(
   specular = c(1, 1, 1),
   transmittance = c(1, 1, 1),
   emission = c(0, 0, 0),
-  shininess = 10,
+  shininess = 50,
   ior = 1,
   dissolve = 1,
   illum = 1,
   texture_location = "",
   normal_texture_location = "",
+  bump_texture_location = "",
   specular_texture_location = "",
   ambient_texture_location = "",
   emissive_texture_location = "",
   diffuse_intensity = 1,
+  bump_intensity = 1,
   specular_intensity = 1,
   emission_intensity = 1,
   ambient_intensity = 1,
@@ -35,59 +37,63 @@ material_list(
 )
 }
 \arguments{
-\item{diffuse}{Default `c(0.5,0.5,0.5)`. The diffuse color.}
+\item{diffuse}{Default \code{c(0.5,0.5,0.5)}. The diffuse color.}
 
-\item{ambient}{Default `c(0,0,0)`. The ambient color.}
+\item{ambient}{Default \code{c(0,0,0)}. The ambient color.}
 
-\item{specular}{Default `c(1,1,1)`. The specular color.}
+\item{specular}{Default \code{c(1,1,1)}. The specular color.}
 
-\item{transmittance}{Default `c(1,1,1)`. The transmittance}
+\item{transmittance}{Default \code{c(1,1,1)}. The transmittance}
 
-\item{emission}{Default `c(0,0,0)`. The emissive color.}
+\item{emission}{Default \code{c(0,0,0)}. The emissive color.}
 
-\item{shininess}{Default `10.0`. The shininess exponent.}
+\item{shininess}{Default \code{50.0}. The shininess exponent.}
 
-\item{ior}{Default `1.0`. The index of refraction. If this is not equal to `1.0`, the material will be refractive.}
+\item{ior}{Default \code{1.0}. The index of refraction. If this is not equal to \code{1.0}, the material will be refractive.}
 
-\item{dissolve}{Default `1.0`. The transparency.}
+\item{dissolve}{Default \code{1.0}. The transparency.}
 
-\item{illum}{Default `1.0`. The illumination.}
+\item{illum}{Default \code{1.0}. The illumination.}
 
-\item{texture_location}{Default `""`. The diffuse texture location.}
+\item{texture_location}{Default \code{""}. The diffuse texture location.}
 
-\item{normal_texture_location}{Default `""`. The normal texture location.}
+\item{normal_texture_location}{Default \code{""}. The normal texture location.}
 
-\item{specular_texture_location}{Default `""`. The specular texture location.}
+\item{bump_texture_location}{Default \code{""}. The bump texture location.}
 
-\item{ambient_texture_location}{Default `""`. The ambient texture location.}
+\item{specular_texture_location}{Default \code{""}. The specular texture location.}
 
-\item{emissive_texture_location}{Default `""`. The emissive texture location.}
+\item{ambient_texture_location}{Default \code{""}. The ambient texture location.}
 
-\item{diffuse_intensity}{Default `1`. The diffuse intensity.}
+\item{emissive_texture_location}{Default \code{""}. The emissive texture location.}
 
-\item{specular_intensity}{Default `1`. The specular intensity.}
+\item{diffuse_intensity}{Default \code{1}. The diffuse intensity.}
 
-\item{emission_intensity}{Default `1`. The emission intensity.}
+\item{bump_intensity}{Default \code{1}. The bump intensity.}
 
-\item{ambient_intensity}{Default `1`. The ambient intensity.}
+\item{specular_intensity}{Default \code{1}. The specular intensity.}
 
-\item{culling}{Default `"back"`. The culling type. Options are `back`, `front`, and `none`.}
+\item{emission_intensity}{Default \code{1}. The emission intensity.}
 
-\item{type}{Default `"diffuse"`. The shader type. Options include `diffuse`,`phong`,`vertex`, and `color`.}
+\item{ambient_intensity}{Default \code{1}. The ambient intensity.}
 
-\item{translucent}{Default `FALSE`. Whether light should transmit through a semi-transparent material.}
+\item{culling}{Default \code{"back"}. The culling type. Options are \code{back}, \code{front}, and \code{none}.}
 
-\item{toon_levels}{Default `5`. Number of color breaks in the toon shader.}
+\item{type}{Default \code{"diffuse"}. The shader type. Options include \code{diffuse},\code{phong},\code{vertex}, and \code{color}.}
 
-\item{toon_outline_width}{Default `0.05`. Expansion term for model to specify toon outline width.}
+\item{translucent}{Default \code{FALSE}. Whether light should transmit through a semi-transparent material.}
 
-\item{toon_outline_color}{Default `black`. Toon outline color.}
+\item{toon_levels}{Default \code{5}. Number of color breaks in the toon shader.}
 
-\item{reflection_intensity}{Default `0.0`. Intensity of the reflection of the environment map, if present. This will be ignored if the material is refractive.}
+\item{toon_outline_width}{Default \code{0.05}. Expansion term for model to specify toon outline width.}
 
-\item{reflection_sharpness}{Default `1.0`. Sharpness of the reflection, where lower values have blurrier reflections. Must be greater than zero and less than one.}
+\item{toon_outline_color}{Default \code{black}. Toon outline color.}
 
-\item{two_sided}{Default `FALSE`. Whether diffuse materials should be two sided (normal is taken as the absolute value of the dot product of the light direction and the normal).}
+\item{reflection_intensity}{Default \code{0.0}. Intensity of the reflection of the environment map, if present. This will be ignored if the material is refractive.}
+
+\item{reflection_sharpness}{Default \code{1.0}. Sharpness of the reflection, where lower values have blurrier reflections. Must be greater than zero and less than one.}
+
+\item{two_sided}{Default \code{FALSE}. Whether diffuse materials should be two sided (normal is taken as the absolute value of the dot product of the light direction and the normal).}
 }
 \value{
 List of material properties.
@@ -96,8 +102,8 @@ List of material properties.
 Generate a material properties list.
 }
 \examples{
-if(rayvertex:::run_documentation()) {
-mat_prop = material_list(diffuse="purple", type="phong", shininess=20,
+if(run_documentation()) {
+mat_prop = material_list(diffuse="purple", type="phong", shininess = 20,
                         ambient="purple", ambient_intensity=0.3,
                         specular = "red", specular_intensity=2)
                         

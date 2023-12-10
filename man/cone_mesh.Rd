@@ -14,20 +14,20 @@ cone_mesh(
 )
 }
 \arguments{
-\item{start}{Default `c(0, 0, 0)`. Base of the cone, specifying `x`, `y`, `z`.}
+\item{start}{Default \code{c(0, 0, 0)}. Base of the cone, specifying \code{x}, \code{y}, \code{z}.}
 
-\item{end}{Default `c(0, 1, 0)`. Tip of the cone, specifying `x`, `y`, `z`.}
+\item{end}{Default \code{c(0, 1, 0)}. Tip of the cone, specifying \code{x}, \code{y}, \code{z}.}
 
-\item{radius}{Default `1`. Radius of the bottom of the cone.}
+\item{radius}{Default \code{1}. Radius of the bottom of the cone.}
 
-\item{direction}{Default `NA`. Alternative to `start` and `end`, specify the direction (via 
-a length-3 vector) of the cone. Cone will be centered at `start`, and the length will be
+\item{direction}{Default \code{NA}. Alternative to \code{start} and \code{end}, specify the direction (via
+a length-3 vector) of the cone. Cone will be centered at \code{start}, and the length will be
 determined by the magnitude of the direction vector.}
 
-\item{from_center}{Default `TRUE`. If orientation specified via `direction`, setting this argument
-to `FALSE` will make `start` specify the bottom of the cone, instead of the middle.}
+\item{from_center}{Default \code{TRUE}. If orientation specified via \code{direction}, setting this argument
+to \code{FALSE} will make \code{start} specify the bottom of the cone, instead of the middle.}
 
-\item{material}{Default `material_list()` (default values). Specify the material of the object.}
+\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -36,21 +36,21 @@ List describing the mesh.
 Cone 3D Model
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a cone
 generate_cornell_mesh() |>
   add_shape(cone_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 300, 555/2),
                       radius = 100)) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a blue cone with a wide base
 generate_cornell_mesh() |>
   add_shape(cone_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 300, 555/2), radius=200,
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a long, thin cone
 generate_cornell_mesh() |>
   add_shape(cone_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 400, 555/2), radius=50,

@@ -16,24 +16,24 @@ arrow_mesh(
 )
 }
 \arguments{
-\item{start}{Default `c(0, 0, 0)`. Base of the arrow, specifying `x`, `y`, `z`.}
+\item{start}{Default \code{c(0, 0, 0)}. Base of the arrow, specifying \code{x}, \code{y}, \code{z}.}
 
-\item{end}{Default `c(0, 1, 0)`. Tip of the arrow, specifying `x`, `y`, `z`.}
+\item{end}{Default \code{c(0, 1, 0)}. Tip of the arrow, specifying \code{x}, \code{y}, \code{z}.}
 
-\item{radius_top}{Default `0.5`. Radius of the top of the arrow.}
+\item{radius_top}{Default \code{0.5}. Radius of the top of the arrow.}
 
-\item{radius_tail}{Default `0.2`.  Radius of the tail of the arrow.}
+\item{radius_tail}{Default \code{0.2}.  Radius of the tail of the arrow.}
 
-\item{tail_proportion}{Default `0.5`. Proportion of the arrow that is the tail.}
+\item{tail_proportion}{Default \code{0.5}. Proportion of the arrow that is the tail.}
 
-\item{direction}{Default `NA`. Alternative to `start` and `end`, specify the direction (via 
-a length-3 vector) of the arrow. Arrow will be centered at `start`, and the length will be
+\item{direction}{Default \code{NA}. Alternative to \code{start} and \code{end}, specify the direction (via
+a length-3 vector) of the arrow. Arrow will be centered at \code{start}, and the length will be
 determined by the magnitude of the direction vector.}
 
-\item{from_center}{Default `TRUE`. If orientation specified via `direction`, setting this argument
-to `FALSE` will make `start` specify the bottom of the cone, instead of the middle.}
+\item{from_center}{Default \code{TRUE}. If orientation specified via \code{direction}, setting this argument
+to \code{FALSE} will make \code{start} specify the bottom of the cone, instead of the middle.}
 
-\item{material}{Default `material_list()` (default values). Specify the material of the object.}
+\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -42,7 +42,7 @@ List describing the mesh.
 Arrow 3D Model
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate an arrow
 generate_cornell_mesh() |>
   add_shape(arrow_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 300, 555/2), radius_tail=50,
@@ -50,7 +50,7 @@ generate_cornell_mesh() |>
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a blue arrow with a wide tail
 generate_cornell_mesh() |>
   add_shape(arrow_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 300, 555/2), radius_tail=100,
@@ -58,7 +58,7 @@ generate_cornell_mesh() |>
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
   }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a long, thin arrow and change the proportions
 generate_cornell_mesh() |>
   add_shape(arrow_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 400, 555/2), radius_top=30,
@@ -66,7 +66,7 @@ generate_cornell_mesh() |>
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Change the start and end points
 generate_cornell_mesh() |>
   add_shape(arrow_mesh(start = c(500, 20, 555/2), end = c(50, 500, 555/2), radius_top=30,

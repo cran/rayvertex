@@ -9,7 +9,7 @@ translate_mesh(mesh, position = c(0, 0, 0))
 \arguments{
 \item{mesh}{The mesh.}
 
-\item{position}{Default `c(0,0,0)`. The translation vector.}
+\item{position}{Default \code{c(0,0,0)}. The translation vector.}
 }
 \value{
 Translated mesh
@@ -18,7 +18,7 @@ Translated mesh
 Translate Mesh
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Translate a mesh in the Cornell box
 robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
 generate_cornell_mesh() |>

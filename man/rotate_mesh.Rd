@@ -14,11 +14,11 @@ rotate_mesh(
 \arguments{
 \item{mesh}{The mesh.}
 
-\item{angle}{Default `c(0,0,0)`. The rotation amount for the x/y/z axes, in degrees.}
+\item{angle}{Default \code{c(0,0,0)}. The rotation amount for the x/y/z axes, in degrees.}
 
-\item{pivot_point}{Default `c(0,0,0)`. The pivot point of the rotation.}
+\item{pivot_point}{Default \code{c(0,0,0)}. The pivot point of the rotation.}
 
-\item{order_rotation}{Default `c(1,2,3)`. The order in which to perform the rotations.}
+\item{order_rotation}{Default \code{c(1,2,3)}. The order in which to perform the rotations.}
 }
 \value{
 Rotated Mesh
@@ -27,7 +27,7 @@ Rotated Mesh
 Rotate Mesh
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Rotate a mesh in the Cornell box
 robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
 

@@ -16,21 +16,21 @@ sphere_mesh(
 )
 }
 \arguments{
-\item{position}{Default `c(0,0,0)`. Position of the mesh.}
+\item{position}{Default \code{c(0,0,0)}. Position of the mesh.}
 
-\item{scale}{Default `c(1,1,1)`. Scale of the mesh. Can also be a single numeric value scaling all axes uniformly.}
+\item{scale}{Default \code{c(1,1,1)}. Scale of the mesh. Can also be a single numeric value scaling all axes uniformly.}
 
-\item{angle}{Default `c(0,0,0)`. Angle to rotate the mesh.}
+\item{angle}{Default \code{c(0,0,0)}. Angle to rotate the mesh.}
 
-\item{pivot_point}{Default `c(0,0,0)`. Point around which to rotate the mesh.}
+\item{pivot_point}{Default \code{c(0,0,0)}. Point around which to rotate the mesh.}
 
-\item{order_rotation}{Default `c(1,2,3)`. Order to rotate the axes.}
+\item{order_rotation}{Default \code{c(1,2,3)}. Order to rotate the axes.}
 
-\item{radius}{Default `1`. Radius of the sphere.}
+\item{radius}{Default \code{1}. Radius of the sphere.}
 
-\item{low_poly}{Default `FALSE`. If `TRUE`, will use a low-poly sphere.}
+\item{low_poly}{Default \code{FALSE}. If \code{TRUE}, will use a low-poly sphere.}
 
-\item{material}{Default `material_list()` (default values). Specify the material of the object.}
+\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -39,20 +39,20 @@ List describing the mesh.
 Sphere 3D Model
 }
 \examples{
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a sphere in the Cornell box.
 generate_cornell_mesh() |>
   add_shape(sphere_mesh(position = c(555/2, 555/2, 555/2), radius = 100)) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate a shiny sphere in the Cornell box
 generate_cornell_mesh() |>
   add_shape(sphere_mesh(position = c(555/2, 100, 555/2), radius = 100, 
                     material = material_list(diffuse = "gold",type="phong"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
 }
-if(rayvertex:::run_documentation()) {
+if(run_documentation()) {
 #Generate an ellipsoid in the Cornell box
 generate_cornell_mesh() |>
   add_shape(sphere_mesh(position = c(555/2, 210, 555/2), radius = 100, 
