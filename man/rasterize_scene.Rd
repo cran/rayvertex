@@ -12,6 +12,7 @@ rasterize_scene(
   line_info = NULL,
   alpha_line = 1,
   parallel = TRUE,
+  plot = is.na(filename),
   fov = 20,
   lookfrom = c(0, 0, 10),
   lookat = NULL,
@@ -61,6 +62,8 @@ rasterize_scene(
 \item{alpha_line}{Default \code{1}. Line transparency.}
 
 \item{parallel}{Default \code{TRUE}. Whether to use parallel processing.}
+
+\item{plot}{Default \code{is.na(filename)}. Whether to plot the image.}
 
 \item{fov}{Default \code{20}. Width of the rendered image.}
 
@@ -161,7 +164,7 @@ rasterize_scene(base_model, lookfrom=c(2,4,10),
 }
 if(run_documentation()) {           
 #load the R OBJ file, scale it down, color it blue, and add it to the grey base
-r_model = obj_mesh(r_obj()) |>
+r_model = obj_mesh(r_obj(simple_r = TRUE)) |>
  scale_mesh(scale=0.5) |>
  set_material(diffuse="dodgerblue") |>
  add_shape(base_model)

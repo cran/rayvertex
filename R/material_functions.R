@@ -12,7 +12,7 @@
 #'@param diffuse                   Default `c(0.5,0.5,0.5)`. The diffuse color.
 #'@param ambient                   Default `c(0,0,0)`. The ambient color.
 #'@param specular                  Default `c(1,1,1)`. The specular color.
-#'@param transmittance             Default `c(1,1,1)`. The transmittance
+#'@param transmittance             Default `c(0,0,0)`. The transmittance.
 #'@param emission                  Default `c(0,0,0)`. The emissive color.
 #'@param shininess                 Default `50.0`. The shininess exponent.
 #'@param ior                       Default `1.0`. The index of refraction. If this is not equal to `1.0`, the material will be refractive.
@@ -58,7 +58,7 @@ set_material = function(mesh, material = NULL, id = NULL,
                         diffuse                   = c(0.5,0.5,0.5),
                         ambient                   = c(0,0,0),
                         specular                  = c(1,1,1),
-                        transmittance             = c(1,1,1),
+                        transmittance             = c(0,0,0),
                         emission                  = c(0,0,0),
                         shininess                 = 50.0,
                         ior                       = 1.0,
@@ -116,32 +116,41 @@ set_material = function(mesh, material = NULL, id = NULL,
     material$toon_outline_color    = convert_color(toon_outline_color)   
     material$reflection_intensity        = reflection_intensity        
     material$reflection_sharpness    = reflection_sharpness      
-    material$two_sided              = two_sided      
+    material$two_sided              = two_sided   
+    material = rayvertex_material(material)
   }
   material_hash = digest::digest(material)
-  if(length(mesh$materials) > 0 && !is.null(mesh$materials[[1]]) && length(mesh$materials[[1]]) > 0) {
+  #Check if any materials exist
+  if(length(mesh$materials) > 0 && 
+     !is.null(mesh$materials[[1]]) && 
+     length(mesh$materials[[1]]) > 0) {
     if(is.null(id)) {
-      for(i in seq_len(length(mesh$materials))) {
+      #Replace all materials with single material
+      mesh$materials = vector(mode = "list", length = length(mesh$shapes))
+      for(i in seq_len(length(mesh$shapes))) {
         mesh$materials[[i]] = list()
         mesh$materials[[i]][[1]] = material
       }
-      mesh$material_hashes = rep(material_hash, length(mesh$material_hashes))
+      attr(mesh, "material_hashes") = rep(material_hash, length(mesh$shapes))
       for(i in seq_len(length(mesh$shapes))) {
-        mesh$shapes[[i]]$material_ids = rep(0,nrow(mesh$shapes[[i]]$indices))
+        mesh$shapes[[i]]$material_ids = rep(0L,nrow(mesh$shapes[[i]]$indices))
       }
     } else {
-      len_mat = length(mesh$materials[[id]])
-      for(i in seq_len(len_mat)) {
-        mesh$materials[[id]][[i]] = material
-      }
-      mesh$shapes[[id]]$material_ids = rep(0,nrow(mesh$shapes[[id]]$indices))
+      mesh$materials[[id]] = list()
+      mesh$materials[[id]][[1]] = material
+      mesh$shapes[[id]]$material_ids = rep(0L,nrow(mesh$shapes[[id]]$indices))
+      attr(mesh, "material_hashes")[id] = material_hash
     }
   } else {
-    mesh$shapes[[1]]$material_ids = rep(0,nrow(mesh$shapes[[1]]$indices))
-    mesh$materials = list(list(material))
-    mesh$material_hashes[1] = material_hash
+    n_shapes = length(mesh$shapes)
+    for(i in seq_len(n_shapes)) {
+      mesh$materials = vector(mode = "list", length = n_shapes)
+      mesh$shapes[[i]]$material_ids = rep(0L,nrow(mesh$shapes[[i]]$indices))
+      mesh$materials[[i]][[1]] = material
+    }
+    attr(mesh, "material_hashes") = rep(material_hash, n_shapes)
   }
-  class(mesh) = c("ray_mesh", "list")
+  # class(mesh) = c("ray_mesh", "list")
   return(mesh)
 }
 
@@ -191,11 +200,23 @@ set_material = function(mesh, material = NULL, id = NULL,
 #'p_sphere = sphere_mesh(position=c(555/2,555/2,555/2), 
 #'                       radius=40,material=material_list(diffuse="purple"))
 #'generate_cornell_mesh() |>
-#'  add_shape(p_sphere) |>
+#'  add_shape(translate_mesh(p_sphere,c(0,-100,0))) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(200,-100,0)),diffuse="red")) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(100,-100,0)),dissolve=0.5)) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(-100,-100,0)),type="phong")) |>
+#'  add_shape(change_material(translate_mesh(p_sphere,c(-200,-100,0)),type="phong",shininess=30)) |>
+#'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
+#'}  
+#'
+#'if(run_documentation()) {
+#'#Change several shapes at once
+#'p_sphere |>
 #'  add_shape(change_material(translate_mesh(p_sphere,c(200,0,0)),diffuse="red")) |>
 #'  add_shape(change_material(translate_mesh(p_sphere,c(100,0,0)),dissolve=0.5)) |>
 #'  add_shape(change_material(translate_mesh(p_sphere,c(-100,0,0)),type="phong")) |>
 #'  add_shape(change_material(translate_mesh(p_sphere,c(-200,0,0)),type="phong",shininess=30)) |>
+#'  change_material(diffuse = "red") |> 
+#'  add_shape(generate_cornell_mesh()) |> 
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #'}
 change_material = function(mesh, id = NULL, sub_id = 1,
@@ -343,11 +364,11 @@ change_material = function(mesh, id = NULL, sub_id = 1,
         counter = counter + 1
       }
     }
-    mesh$material_hashes = vector("character", length = counter)
+    attr(mesh, "material_hashes") = vector("character", length = counter)
     counter = 1
     for(i in seq_len(length(mesh$materials))) {
       for(j in seq_len(length(mesh$materials[[i]]))) {
-        mesh$material_hashes[counter] = digest::digest(mesh$materials[[i]][[j]])
+        attr(mesh, "material_hashes")[counter] = digest::digest(mesh$materials[[i]][[j]])
         counter = counter + 1
       }
     }
@@ -366,7 +387,7 @@ change_material = function(mesh, id = NULL, sub_id = 1,
 #'@param diffuse                   Default `c(0.5,0.5,0.5)`. The diffuse color.
 #'@param ambient                   Default `c(0,0,0)`. The ambient color.
 #'@param specular                  Default `c(1,1,1)`. The specular color.
-#'@param transmittance             Default `c(1,1,1)`. The transmittance
+#'@param transmittance             Default `c(0,0,0)`. The transmittance
 #'@param emission                  Default `c(0,0,0)`. The emissive color.
 #'@param shininess                 Default `50.0`. The shininess exponent.
 #'@param ior                       Default `1.0`. The index of refraction. If this is not equal to `1.0`, the material will be refractive.
@@ -409,7 +430,7 @@ change_material = function(mesh, id = NULL, sub_id = 1,
 material_list = function(diffuse                   = c(0.8,0.8,0.8),
                          ambient                   = c(0,0,0),
                          specular                  = c(1,1,1),
-                         transmittance             = c(1,1,1),
+                         transmittance             = c(0,0,0),
                          emission                  = c(0,0,0),
                          shininess                 = 50.0,
                          ior                       = 1.0,
@@ -433,7 +454,7 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
                          toon_outline_width        = 0.05,
                          toon_outline_color        = "black",
                          reflection_intensity      = 0.0,
-                         reflection_sharpness      = 0.0,
+                         reflection_sharpness      = 1.0,
                          two_sided                 = FALSE) {
   culling = switch(culling, "back" = 1, "front" = 2, "none" = 3, 1)
   material_props = 
@@ -474,7 +495,7 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
   stopifnot(length(material_props$toon_outline_color) == 3)
   
   
-  return(material_props)
+  return(rayvertex_material(material_props))
 }
 
 #' Add Outline

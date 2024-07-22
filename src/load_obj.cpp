@@ -3,7 +3,7 @@ using namespace Rcpp;
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #define TINYOBJLOADER_USE_MAPBOX_EARCUT
-#include "tiny_obj_loader.h"
+#include "tinyobj/tiny_obj_loader.h"
 
 template <typename T>
 inline void set_item_impl( List& target, int i, const T& obj, CharacterVector& names, traits::true_type ){
@@ -47,13 +47,18 @@ List load_obj(std::string inputfile, std::string basedir) {
   if((attrib.vertices.size() % 3) !=0) {
     throw std::runtime_error("Number of vertices is not a multiple of 3");
   }
-  List shape_list(shapes.size());
+  
+  List shape_list;
   List material_list;
   for (size_t s = 0; s < shapes.size(); s++) {
     tinyobj::mesh_t m = shapes[s].mesh;
     
     const size_t n_faces  = m.material_ids.size();
     const size_t nv_face = m.indices.size() / n_faces;
+    if(n_faces == 0 || nv_face == 0) {
+      continue;
+    }
+      
     List single_shape;
     std::vector<float> verts;
     std::vector<float> norms;
@@ -83,7 +88,7 @@ List load_obj(std::string inputfile, std::string basedir) {
     single_shape["has_vertex_tex"]     = LogicalVector(inds.size()/nv_face,inds.size() == tex_inds.size());
     single_shape["has_vertex_normals"] = LogicalVector(inds.size()/nv_face,inds.size() == norm_inds.size());
 
-    shape_list[s]                = single_shape;
+    shape_list.push_back(single_shape);
   }
   //This needs to be updated when more defaults are added to each texture
   const int num_items = 29;
@@ -131,9 +136,10 @@ List load_obj(std::string inputfile, std::string basedir) {
   }
   List return_val;
   return_val["shapes"]    = shape_list;
-  return_val["materials"] = List::create(material_list);
   return_val["vertices"]  = List::create(Rcpp::transpose(NumericMatrix(3L, attrib.vertices.size()/3L, attrib.vertices.begin())));
   return_val["texcoords"] = List::create(Rcpp::transpose(NumericMatrix(2L, attrib.texcoords.size()/2L, attrib.texcoords.begin())));
   return_val["normals"]   = List::create(Rcpp::transpose(NumericMatrix(3L, attrib.normals.size()/3L, attrib.normals.begin())));
+  return_val["materials"] = List::create(material_list);
+  
   return return_val;
 }

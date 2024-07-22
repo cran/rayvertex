@@ -11,6 +11,49 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// CalculateNormals
+NumericMatrix CalculateNormals(List raymesh, int shape_id);
+RcppExport SEXP _rayvertex_CalculateNormals(SEXP raymeshSEXP, SEXP shape_idSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type raymesh(raymeshSEXP);
+    Rcpp::traits::input_parameter< int >::type shape_id(shape_idSEXP);
+    rcpp_result_gen = Rcpp::wrap(CalculateNormals(raymesh, shape_id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// CalculateTangents
+List CalculateTangents(Rcpp::List raymesh, int shape_id);
+RcppExport SEXP _rayvertex_CalculateTangents(SEXP raymeshSEXP, SEXP shape_idSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type raymesh(raymeshSEXP);
+    Rcpp::traits::input_parameter< int >::type shape_id(shape_idSEXP);
+    rcpp_result_gen = Rcpp::wrap(CalculateTangents(raymesh, shape_id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// DisplaceMesh
+NumericMatrix DisplaceMesh(Rcpp::List raymesh, NumericMatrix displacement_texture, NumericMatrix displacement_texture_y, NumericMatrix displacement_texture_z, NumericMatrix tangents, LogicalVector tangent_right_handed, double displacement_scale, bool displacement_vector, int shape_id);
+RcppExport SEXP _rayvertex_DisplaceMesh(SEXP raymeshSEXP, SEXP displacement_textureSEXP, SEXP displacement_texture_ySEXP, SEXP displacement_texture_zSEXP, SEXP tangentsSEXP, SEXP tangent_right_handedSEXP, SEXP displacement_scaleSEXP, SEXP displacement_vectorSEXP, SEXP shape_idSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type raymesh(raymeshSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type displacement_texture(displacement_textureSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type displacement_texture_y(displacement_texture_ySEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type displacement_texture_z(displacement_texture_zSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type tangents(tangentsSEXP);
+    Rcpp::traits::input_parameter< LogicalVector >::type tangent_right_handed(tangent_right_handedSEXP);
+    Rcpp::traits::input_parameter< double >::type displacement_scale(displacement_scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type displacement_vector(displacement_vectorSEXP);
+    Rcpp::traits::input_parameter< int >::type shape_id(shape_idSEXP);
+    rcpp_result_gen = Rcpp::wrap(DisplaceMesh(raymesh, displacement_texture, displacement_texture_y, displacement_texture_z, tangents, tangent_right_handed, displacement_scale, displacement_vector, shape_id));
+    return rcpp_result_gen;
+END_RCPP
+}
 // load_obj
 List load_obj(std::string inputfile, std::string basedir);
 RcppExport SEXP _rayvertex_load_obj(SEXP inputfileSEXP, SEXP basedirSEXP) {
@@ -32,6 +75,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type inputfile(inputfileSEXP);
     Rcpp::traits::input_parameter< std::string >::type basedir(basedirSEXP);
     rcpp_result_gen = Rcpp::wrap(load_ply(inputfile, basedir));
+    return rcpp_result_gen;
+END_RCPP
+}
+// LoopSubdivide
+List LoopSubdivide(List mesh, int shape_i, const int nLevels, bool verbose, bool simple_subdivision);
+RcppExport SEXP _rayvertex_LoopSubdivide(SEXP meshSEXP, SEXP shape_iSEXP, SEXP nLevelsSEXP, SEXP verboseSEXP, SEXP simple_subdivisionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type mesh(meshSEXP);
+    Rcpp::traits::input_parameter< int >::type shape_i(shape_iSEXP);
+    Rcpp::traits::input_parameter< const int >::type nLevels(nLevelsSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< bool >::type simple_subdivision(simple_subdivisionSEXP);
+    rcpp_result_gen = Rcpp::wrap(LoopSubdivide(mesh, shape_i, nLevels, verbose, simple_subdivision));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -160,8 +218,12 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_rayvertex_CalculateNormals", (DL_FUNC) &_rayvertex_CalculateNormals, 2},
+    {"_rayvertex_CalculateTangents", (DL_FUNC) &_rayvertex_CalculateTangents, 2},
+    {"_rayvertex_DisplaceMesh", (DL_FUNC) &_rayvertex_DisplaceMesh, 9},
     {"_rayvertex_load_obj", (DL_FUNC) &_rayvertex_load_obj, 2},
     {"_rayvertex_load_ply", (DL_FUNC) &_rayvertex_load_ply, 2},
+    {"_rayvertex_LoopSubdivide", (DL_FUNC) &_rayvertex_LoopSubdivide, 5},
     {"_rayvertex_rasterize_lines_rcpp", (DL_FUNC) &_rayvertex_rasterize_lines_rcpp, 15},
     {"_rayvertex_rasterize", (DL_FUNC) &_rayvertex_rasterize, 48},
     {"_rayvertex_smooth_normals_mesh_rcpp", (DL_FUNC) &_rayvertex_smooth_normals_mesh_rcpp, 2},

@@ -8,11 +8,11 @@
 #'@examples
 #'if(run_documentation()) {
 #'#Translate a mesh in the Cornell box
-#'robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
+#'robj = obj_mesh(r_obj(), scale=150,angle=c(0,180,0))
 #'generate_cornell_mesh() |>
-#'  add_shape(translate_mesh(robj,c(400,0,155))) |>
-#'  add_shape(translate_mesh(robj,c(555/2,100,555/2))) |>
-#'  add_shape(translate_mesh(robj,c(155,200,400))) |>
+#'  add_shape(translate_mesh(robj,c(400,100,155))) |>
+#'  add_shape(translate_mesh(robj,c(555/2,200,555/2))) |>
+#'  add_shape(translate_mesh(robj,c(155,300,400))) |>
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #'}
 translate_mesh = function(mesh, position = c(0,0,0)) {
@@ -37,31 +37,36 @@ translate_mesh = function(mesh, position = c(0,0,0)) {
 #'@examples
 #'if(run_documentation()) {
 #'#Scale a mesh in the Cornell box
-#'robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
+#'robj = obj_mesh(r_obj(), scale=150,angle=c(0,180,0))
 #'
 #'generate_cornell_mesh() |>
-#' add_shape(scale_mesh(translate_mesh(robj,c(400,0,155)),0.5, center=c(400,0,155))) |>
-#' add_shape(scale_mesh(translate_mesh(robj,c(555/2,100,555/2)),1.5, center=c(555/2,100,555/2))) |>
-#' add_shape(scale_mesh(translate_mesh(robj,c(155,200,400)),c(0.5,2,0.5), center=c(155,200,400))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(400,100,155)),0.5, center=c(400,100,155))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(555/2,200,555/2)),1.5, center=c(555/2,200,555/2))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(55,300,400)),c(0.5,2,0.5), center=c(155,300,400))) |>
 #' rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #' }
 scale_mesh = function(mesh, scale = 1, center = c(0,0,0)) {
   if(length(scale) == 1) {
     scale = rep(scale,3)
   }
+  scale_mat = diag(scale,3,3)
+  inv_scale_mat = diag(1/scale,3,3)
   for(j in seq_len(length(mesh$vertices))) {
-    mesh$vertices[[j]][,1]  = (mesh$vertices[[j]][,1]-center[1])*scale[1] + center[1]
-    mesh$vertices[[j]][,2]  = (mesh$vertices[[j]][,2]-center[2])*scale[2] + center[2]
-    mesh$vertices[[j]][,3]  = (mesh$vertices[[j]][,3]-center[3])*scale[3] + center[3]
+    mesh$vertices[[j]][,1]  = mesh$vertices[[j]][,1]-center[1]
+    mesh$vertices[[j]][,2]  = mesh$vertices[[j]][,2]-center[2]
+    mesh$vertices[[j]][,3]  = mesh$vertices[[j]][,3]-center[3]
+    mesh$vertices[[j]] = mesh$vertices[[j]] %*% scale_mat
+    mesh$vertices[[j]][,1]  = mesh$vertices[[j]][,1]+center[1]
+    mesh$vertices[[j]][,2]  = mesh$vertices[[j]][,2]+center[2]
+    mesh$vertices[[j]][,3]  = mesh$vertices[[j]][,3]+center[3]
     
     if(!is.null(mesh$normals[[j]]) && nrow(mesh$normals[[j]]) > 0) {
-      mesh$normals[[j]][,1]  = mesh$normals[[j]][,1]*1/scale[1]
-      mesh$normals[[j]][,2]  = mesh$normals[[j]][,2]*1/scale[2]
-      mesh$normals[[j]][,3]  = mesh$normals[[j]][,3]*1/scale[3]
-      for(i in seq_len(nrow(mesh$normals[[j]]))) {
-        length_single = sqrt(mesh$normals[[j]][i,1]^2 + mesh$normals[[j]][i,2]^2 + mesh$normals[[j]][i,3]^2)
-        mesh$normals[[j]][i,] = mesh$normals[[j]][i,]/length_single
-      }
+      mesh$normals[[j]] = mesh$normals[[j]] %*% t(inv_scale_mat)
+      
+      # Normalize the normals
+      lengths = sqrt(apply(mesh$normals[[j]]*mesh$normals[[j]],1,sum))
+      norm_mat = matrix(lengths,ncol=3,nrow=length(lengths))
+      mesh$normals[[j]] = mesh$normals[[j]] / norm_mat
     }
   }
   class(mesh) = c("ray_mesh", "list")
@@ -78,13 +83,13 @@ scale_mesh = function(mesh, scale = 1, center = c(0,0,0)) {
 #'@export
 #'@examples
 #'if(run_documentation()) {
-#'#Scale a mesh in the Cornell box
-#'robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
+#'#Scale the Cornell box (and contents) down to the unit box.
+#'robj = obj_mesh(r_obj(), scale=150,angle=c(0,180,0))
 #'
 #'generate_cornell_mesh() |>
-#' add_shape(scale_mesh(translate_mesh(robj,c(400,0,155)),0.5, center=c(400,0,155))) |>
-#' add_shape(scale_mesh(translate_mesh(robj,c(555/2,100,555/2)),1.5, center=c(555/2,100,555/2))) |>
-#' add_shape(scale_mesh(translate_mesh(robj,c(155,200,400)),c(0.5,2,0.5), center=c(155,200,400))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(400,100,155)),0.5, center=c(400,100,155))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(555/2,200,555/2)),1.5, center=c(555/2,200,555/2))) |>
+#' add_shape(scale_mesh(translate_mesh(robj,c(55,300,400)),c(0.5,2,0.5), center=c(155,300,400))) |>
 #' scale_unit_mesh(center_mesh = TRUE) |> 
 #' rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)), 
 #'                 lookfrom = c(0,0,-2), lookat=c(0,0,0))
@@ -144,7 +149,7 @@ center_mesh = function(mesh) {
 #'@examples
 #' if(run_documentation()) {
 #' #Calculates the center of the mesh
-#' get_scene_center(generate_cornell_mesh())
+#' get_mesh_center(generate_cornell_mesh())
 #' }
 get_mesh_center = function(mesh) {
   center_mat = matrix(c(Inf,-Inf),nrow=2,ncol=3)
@@ -212,36 +217,32 @@ generate_rot_matrix = function(angle, order_rotation) {
 #'@examples
 #'if(run_documentation()) {
 #'#Rotate a mesh in the Cornell box
-#'robj = obj_mesh(r_obj(), scale=80,angle=c(0,180,0))
+#'robj = obj_mesh(r_obj(), scale=150,angle=c(0,180,0))
 #'
 #'generate_cornell_mesh() |>
-#' add_shape(rotate_mesh(translate_mesh(robj,c(400,0,155)),c(0,30,0), 
-#'                       pivot_point=c(400,0,155))) |>
-#' add_shape(rotate_mesh(translate_mesh(robj,c(555/2,100,555/2)),c(-30,60,30), 
-#'                       pivot_point=c(555/2,100,555/2))) |>
-#' add_shape(rotate_mesh(translate_mesh(robj,c(155,200,400)),c(-30,60,30), 
-#'                       pivot_point=c(155,200,400), order_rotation=c(3,2,1))) |>
+#' add_shape(rotate_mesh(translate_mesh(robj,c(400,100,155)),c(0,30,0), 
+#'                       pivot_point=c(400,100,155))) |>
+#' add_shape(rotate_mesh(translate_mesh(robj,c(555/2,200,555/2)),c(-30,60,30), 
+#'                       pivot_point=c(555/2,200,555/2))) |>
+#' add_shape(rotate_mesh(translate_mesh(robj,c(155,300,400)),c(-30,60,30), 
+#'                       pivot_point=c(155,300,400), order_rotation=c(3,2,1))) |>
 #' rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
 #' }
 rotate_mesh = function(mesh, angle = c(0,0,0), pivot_point = c(0,0,0), order_rotation = c(1,2,3)) {
   angle = angle*pi/180
+  rot_mat = generate_rot_matrix(angle, order_rotation)
+  inv_t = t(solve(rot_mat))
   for(j in seq_len(length(mesh$vertices))) {
     mesh$vertices[[j]][,1]  = mesh$vertices[[j]][,1]-pivot_point[1]
     mesh$vertices[[j]][,2]  = mesh$vertices[[j]][,2]-pivot_point[2]
     mesh$vertices[[j]][,3]  = mesh$vertices[[j]][,3]-pivot_point[3]
-    rot_mat = generate_rot_matrix(angle, order_rotation)
-    for(i in seq_len(nrow(mesh$vertices[[j]]))) {
-      mesh$vertices[[j]][i,] = mesh$vertices[[j]][i,] %*% rot_mat
-    }
+    mesh$vertices[[j]] = mesh$vertices[[j]] %*% rot_mat
     mesh$vertices[[j]][,1]  = mesh$vertices[[j]][,1]+pivot_point[1]
     mesh$vertices[[j]][,2]  = mesh$vertices[[j]][,2]+pivot_point[2]
     mesh$vertices[[j]][,3]  = mesh$vertices[[j]][,3]+pivot_point[3]
     
     if(!is.null(mesh$normals[[j]]) && nrow(mesh$normals[[j]]) > 0) {
-      inv_t = t(solve(rot_mat))
-      for(i in seq_len(nrow(mesh$normals[[j]]))) {
-        mesh$normals[[j]][i,] = mesh$normals[[j]][i,] %*% inv_t
-      }
+      mesh$normals[[j]] = mesh$normals[[j]] %*% inv_t
     }
   }
   class(mesh) = c("ray_mesh", "list")
