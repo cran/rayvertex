@@ -1,4 +1,4 @@
-afc529fb3f7c0c39aea427f94dd25465 *DESCRIPTION
+60715001b2f9506d12840569b49c187a *DESCRIPTION
 ff3c5db9900e6b636613d4466459134d *NAMESPACE
 8397599cf6f66255aea81aa76abfd9e4 *R/RcppExports.R
 634f658cbd04a2d551e01ecd0bbb4936 *R/add_plane_uv_mesh.R
@@ -12,7 +12,7 @@ e35abd39226217a27ef94b4b62e7dcf0 *R/generate_surface.R
 7e3033b698cfb6fed086a9ba97a20a22 *R/lines.R
 0eeda09112e1106a37f7133f67a3d5fb *R/material_functions.R
 c7a64500c35cc8f95b2dbdf0ee04582a *R/merge_scene.R
-e32139b1ef388cf5be4f09f794b95118 *R/objects.R
+8509d661969b85f13ade0137849f54b5 *R/objects.R
 bd1aee9626ba1bf2b59ebd332f03e6b2 *R/r_obj.R
 aedd4ace6466b30077ad861fe38b85d0 *R/rasterize_lines.R
 4e7ab5d6d19522b83588c95b78f9531e *R/rasterize_scene.R
@@ -31,7 +31,7 @@ d41d8cd98f00b204e9800998ecf8427e *R/utils-pipe.R
 258ecf2d696aa8e8e5222a62b3cf810e *R/validate_mesh.R
 6b03d66c8e6138b32f713d241cde772f *R/validate_scene.R
 3ffbc6a29943f4f5a305944ac627582d *R/write_scene_to_obj.R
-5307ee081b4e132fefe4904ed900cc8b *R/zzz.R
+b0fddd98ca8da8537ddc838501e9875b *R/zzz.R
 931b2f38f688562d1abb9c2ca2247241 *inst/COPYRIGHTS
 df285f856c020c82287d7a3a6703471f *inst/extdata/3d_r_logo.txt
 b742d8781ff0cbb97bd1a3dc34f6f8f4 *inst/extdata/3d_r_logo_mat.txt
@@ -43,9 +43,9 @@ c07da735685f839d56a0434adeccc391 *inst/extdata/cube.txt
 5ff175eb084dbf12b9bd42f0915bfc39 *inst/extdata/low_poly_sphere.txt
 c9b8ecf8fabbc9c6053a32e27004de6c *inst/extdata/r_obj.txt
 252afe07eb41992e3a89a57201a51264 *inst/extdata/sphere.txt
-eacd41c3d379e7b54a0d6baf4c48e93b *inst/extdata/xy_plane.txt
+ee7f0f737719a8969c064702905acfa2 *inst/extdata/xy_plane.txt
 5886c7886aeed9cb252b2b68a2d7427b *inst/extdata/xz_plane.txt
-3483f4152195d73e03ddef65b8301c1e *inst/extdata/yz_plane.txt
+4e5e6d5a2ed14e7403941855d08b3a47 *inst/extdata/yz_plane.txt
 ee1bdfc64aae0f5f3d01f25a9718c81c *man/add_light.Rd
 0f31a4c37d7497aeb84eb52beab64788 *man/add_lines.Rd
 41863486bffa92762240d80e70c8000d *man/add_plane_uv_mesh.Rd
@@ -117,7 +117,7 @@ b00324e3b0e12e9c6c1824110df83d66 *man/set_material.Rd
 8ad61ee1f0b7ae0f4a2dba3755323afc *man/sphere_mesh.Rd
 080450064e5983b42bb141f115aa5c07 *man/subdivide_mesh.Rd
 44145fb45b67d876d880eb6747305fa3 *man/swap_yz.Rd
-7b4cbe8aa184a7e0d286b9ffc8c88eb5 *man/text3d_mesh.Rd
+8ef4123854974e00106078097614282c *man/text3d_mesh.Rd
 70c82cbec085dac2f037d796f1e29fb1 *man/torus_mesh.Rd
 7e50cd2d78d3fd9433c36d8ee1cd304a *man/translate_lines.Rd
 70ef451b862e0400feedf9c68743b555 *man/translate_mesh.Rd
@@ -170,7 +170,7 @@ a37ba45d632529642d66cbcf14ffda0b *src/glm/detail/func_geometric_simd.inl
 d41d8cd98f00b204e9800998ecf8427e *src/glm/detail/func_trigonometric_simd.inl
 91234408444307e7d2d5374b0239bf08 *src/glm/detail/func_vector_relational.inl
 6afd23f5f031235b61c6e9534c3917d3 *src/glm/detail/func_vector_relational_simd.inl
-2623d35a0dbb1fd32b11bce1bff5c803 *src/glm/detail/glm.cpp
+5cac064531a31dc5d5283e2c2ce55700 *src/glm/detail/glm.cpp
 c60601d450fa67d8a4c292e1b5b04721 *src/glm/detail/qualifier.hpp
 f74c9d983f37dfc7e5c7379b56e04ba7 *src/glm/detail/setup.hpp
 f31798b34c72fdca0afecba4f6609b8d *src/glm/detail/type_float.hpp
@@ -374,7 +374,7 @@ fd8bd3b319d3626f90563ce4a5e76db3 *src/glm/ext/vector_ulp.hpp
 bcc35ba2b3df0255e6bf41bdd92c5d04 *src/glm/ext/vector_ulp.inl
 8e44fc994073e20f3f31c0d8ffd7f3b8 *src/glm/fwd.hpp
 a873ee0ad68ecec734eec658643bad6f *src/glm/geometric.hpp
-df2e406dd0a7a848bce88c611970e35c *src/glm/glm.hpp
+d9c53b571c022c5d08966ea50dcd42ed *src/glm/glm.hpp
 5937412347c9fa6bb35a13d492b8deb6 *src/glm/gtc/bitfield.hpp
 e1a003d4b29b196dc5a79773ebdd8284 *src/glm/gtc/bitfield.inl
 e6be8f9d317227c7d8979b9349806383 *src/glm/gtc/color_space.hpp
@@ -568,8 +568,8 @@ e8f062f6785fe689e03b6ecfe173e497 *src/glm/vector_relational.hpp
 9cc93f719175cbdecfd9bc0e9e16ec7b *src/light.h
 9c91fefbf973459b70c860fc8775beb0 *src/line.cpp
 e28b804aca08b95fe41fbd924e07fbe8 *src/line.h
-55d61dc42387b6b1ba110371175723d0 *src/load_obj.cpp
-1e721ad480f959fe33bd6e8de890de3d *src/load_ply.cpp
+3cc00faa9ad267096e6e34256d679a43 *src/load_obj.cpp
+6f13b07098684d64cc666e13d67f73bb *src/load_ply.cpp
 7984159a0311f29388381f008e373973 *src/loopsubdiv.cpp
 08a0471384310fb6aceae42243aff3f9 *src/loopsubdiv.h
 82f366bac45e3a11355985a263d19ca7 *src/material.h
