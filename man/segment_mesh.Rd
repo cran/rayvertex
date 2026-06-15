@@ -30,7 +30,7 @@ to \code{FALSE} will make \code{start} specify the bottom of the cone, instead o
 
 \item{square}{Default \code{FALSE}. If \code{TRUE}, will use a square instead of a circle for the cylinder.}
 
-\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
+\item{material}{Default \code{\link[=material_list]{material_list()}} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -39,31 +39,27 @@ List describing the mesh.
 Segment 3D Model
 }
 \examples{
-if(run_documentation()) {
-#Generate a segment in the cornell box. 
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
+#Generate a segment in the cornell box.
 generate_cornell_mesh() |>
   add_shape(segment_mesh(start = c(100, 100, 100), end = c(455, 455, 455), radius = 50)) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
-}
-if(run_documentation()) {
 # Draw a line graph representing a normal distribution, but with metal:
 xvals = seq(-3, 3, length.out = 30)
 yvals = dnorm(xvals)
 
 scene_list = list()
 for(i in 1:(length(xvals) - 1)) {
-  scene_list = add_shape(scene_list, 
+  scene_list = add_shape(scene_list,
                          segment_mesh(start = c(555/2 + xvals[i] * 80, yvals[i] * 800, 555/2),
                             end = c(555/2 + xvals[i + 1] * 80, yvals[i + 1] * 800, 555/2),
                             radius = 10,
                             material = material_list(diffuse="purple", type="phong")))
 }
 
-generate_cornell_mesh() |> 
+generate_cornell_mesh() |>
   add_shape(scene_list) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
-}
-if(run_documentation()) {
 #Draw the outline of a cube:
 
 cube_outline = segment_mesh(start = c(100, 100, 100), end = c(100, 100, 455), radius = 10) |>
@@ -82,8 +78,6 @@ cube_outline = segment_mesh(start = c(100, 100, 100), end = c(100, 100, 455), ra
 generate_cornell_mesh() |>
   add_shape(set_material(cube_outline,diffuse="dodgerblue",type="phong")) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
-  }
-if(run_documentation()) {
 #Shrink and rotate the cube
 generate_cornell_mesh() |>
   add_shape(
@@ -91,5 +85,5 @@ generate_cornell_mesh() |>
                 angle=c(45,45,45), pivot_point=c(555/2,555/2,555/2)),0.5,
                 center=c(555/2,555/2,555/2))) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
-}
+\dontshow{\}) # examplesIf}
 }

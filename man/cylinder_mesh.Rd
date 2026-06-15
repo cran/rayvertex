@@ -27,7 +27,7 @@ cylinder_mesh(
 
 \item{order_rotation}{Default \code{c(1,2,3)}. Order to rotate the axes.}
 
-\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
+\item{material}{Default \code{\link[=material_list]{material_list()}} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -36,25 +36,21 @@ List describing the mesh.
 Cylinder 3D Model
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 #Generate a cylinder
 generate_cornell_mesh() |>
   add_shape(cylinder_mesh(position=c(555/2,150,555/2),
                           radius = 50, length=300, material = material_list(diffuse="purple"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
-if(run_documentation()) {
 #Generate a wide, thin disk
 generate_cornell_mesh() |>
   add_shape(cylinder_mesh(position=c(555/2,20,555/2),
                           radius = 200, length=5, material = material_list(diffuse="purple"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
-if(run_documentation()) {
 #Generate a narrow cylinder
 generate_cornell_mesh() |>
   add_shape(cylinder_mesh(position=c(555/2,555/2,555/2),angle=c(45,-45,0),
                           radius = 10, length=500, material = material_list(diffuse="purple"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
+\dontshow{\}) # examplesIf}
 }

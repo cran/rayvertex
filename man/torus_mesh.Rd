@@ -36,7 +36,7 @@ torus_mesh(
 
 \item{rings}{Default \code{36}. The number of faces around the torus.}
 
-\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
+\item{material}{Default \code{\link[=material_list]{material_list()}} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -45,9 +45,9 @@ List describing the mesh.
 Torus 3D Model
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 #Plot a group of tori in the cornell box
-generate_cornell_mesh(ceiling = FALSE) |> 
+generate_cornell_mesh(ceiling = FALSE) |>
  add_shape(torus_mesh(position=c(555/2,555/3,555/2), angle=c(20,0,45),
                       radius=120, ring_radius = 40,
                       material = material_list(diffuse="dodgerblue4",type="phong",
@@ -58,5 +58,5 @@ generate_cornell_mesh(ceiling = FALSE) |>
  add_shape(torus_mesh(position=c(150,450,555/2), angle=c(60,180,0),radius=40, ring_radius = 20,
                       material=material_list(diffuse="red",type="phong"))) |>
  rasterize_scene(light_info = directional_light(c(0,1,-2)))
-}
+\dontshow{\}) # examplesIf}
 }

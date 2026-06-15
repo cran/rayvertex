@@ -27,7 +27,7 @@ determined by the magnitude of the direction vector.}
 \item{from_center}{Default \code{TRUE}. If orientation specified via \code{direction}, setting this argument
 to \code{FALSE} will make \code{start} specify the bottom of the cone, instead of the middle.}
 
-\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
+\item{material}{Default \code{\link[=material_list]{material_list()}} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -36,25 +36,21 @@ List describing the mesh.
 Cone 3D Model
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 #Generate a cone
 generate_cornell_mesh() |>
   add_shape(cone_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 300, 555/2),
                       radius = 100)) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
-if(run_documentation()) {
 #Generate a blue cone with a wide base
 generate_cornell_mesh() |>
   add_shape(cone_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 300, 555/2), radius=200,
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
-if(run_documentation()) {
 #Generate a long, thin cone
 generate_cornell_mesh() |>
   add_shape(cone_mesh(start = c(555/2, 20, 555/2), end = c(555/2, 400, 555/2), radius=50,
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
+\dontshow{\}) # examplesIf}
 }

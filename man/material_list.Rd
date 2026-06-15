@@ -29,11 +29,12 @@ material_list(
   type = "diffuse",
   translucent = TRUE,
   toon_levels = 5,
-  toon_outline_width = 0.05,
+  toon_outline_width = 3,
   toon_outline_color = "black",
   reflection_intensity = 0,
   reflection_sharpness = 1,
-  two_sided = FALSE
+  two_sided = FALSE,
+  sigma = 0
 )
 }
 \arguments{
@@ -85,7 +86,7 @@ material_list(
 
 \item{toon_levels}{Default \code{5}. Number of color breaks in the toon shader.}
 
-\item{toon_outline_width}{Default \code{0.05}. Expansion term for model to specify toon outline width.}
+\item{toon_outline_width}{Default \code{3}. Number of pixels of toon outline.}
 
 \item{toon_outline_color}{Default \code{black}. Toon outline color.}
 
@@ -94,6 +95,8 @@ material_list(
 \item{reflection_sharpness}{Default \code{1.0}. Sharpness of the reflection, where lower values have blurrier reflections. Must be greater than zero and less than one.}
 
 \item{two_sided}{Default \code{FALSE}. Whether diffuse materials should be two sided (normal is taken as the absolute value of the dot product of the light direction and the normal).}
+
+\item{sigma}{Default \code{0}. Oren-Nayar angle.}
 }
 \value{
 List of material properties.
@@ -102,7 +105,7 @@ List of material properties.
 Generate a material properties list.
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 mat_prop = material_list(diffuse="purple", type="phong", shininess = 20,
                         ambient="purple", ambient_intensity=0.3,
                         specular = "red", specular_intensity=2)
@@ -111,5 +114,5 @@ p_sphere = sphere_mesh(position=c(555/2,555/2,555/2),
                       radius=40,material=mat_prop)
                       
 rasterize_scene(p_sphere, light_info=directional_light(direction=c(0.1,0.6,-1)))
-}
+\dontshow{\}) # examplesIf}
 }

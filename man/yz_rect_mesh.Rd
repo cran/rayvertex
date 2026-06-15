@@ -24,7 +24,7 @@ yz_rect_mesh(
 
 \item{order_rotation}{Default \code{c(1,2,3)}. Order to rotate the axes.}
 
-\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
+\item{material}{Default \code{\link[=material_list]{material_list()}} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -33,17 +33,15 @@ List describing the mesh.
 YZ Rectangle 3D Model
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 generate_cornell_mesh() |>
   add_shape(yz_rect_mesh(position = c(555/2, 100, 555/2), scale=c(200,1,200), angle=c(0,0,0),
              material = material_list(diffuse = "purple"))) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
-}
-if(run_documentation()) {
 #Rotate and scale
 generate_cornell_mesh() |>
   add_shape(yz_rect_mesh(position = c(555/2, 100, 555/2), scale=c(300,1,200), angle=c(0,45,0),
              material = material_list(diffuse = "purple"))) |>
   rasterize_scene(light_info = directional_light(c(0,0.5,-1)))
-}
+\dontshow{\}) # examplesIf}
 }

@@ -1,12 +1,12 @@
-
+# fmt: skip file
 
 #'@title Set Material
 #'
 #'@description Set the material(s) of the mesh.
 #'
 #'@param mesh The target mesh. 
-#'@param material Default `NULL`. You can pass the output of the `material_list()` function
-#'to specify the material, or use the following individual settings.
+#'@param material Default `NULL`. You can pass the output of [material_list()]
+#' to specify the material, or use the following individual settings.
 #'@param id Default `1`. Either a number specifying the material to change, or a character vector 
 #'matching the material name.
 #'@param diffuse                   Default `c(0.5,0.5,0.5)`. The diffuse color.
@@ -33,16 +33,16 @@
 #'@param type                      Default `"diffuse"`. The shader type. Options include `diffuse`,`phong`,`vertex`, and `color`.
 #'@param translucent               Default `TRUE`. Whether light should transmit through a semi-transparent material.
 #'@param toon_levels               Default `5`. Number of color breaks in the toon shader. 
-#'@param toon_outline_width        Default `0.05`. Expansion term for model to specify toon outline width. Note: setting this property via this function currently does not generate outlines. Specify it during object creation.
-#'@param toon_outline_color        Default `black`. Toon outline color. Note: setting this property via this function currently does not color outlines. Specify it during object creation.
+#'@param toon_outline_width        Default `3`. Number of pixels of toon outline.
+#'@param toon_outline_color        Default `black`. Toon outline color. 
 #'@param reflection_intensity      Default `0.0`. Intensity of the reflection of the environment map, if present. This will be ignored if the material is refractive.
 #'@param reflection_sharpness      Default `1.0`. Sharpness of the reflection, where lower values have blurrier reflections. Must be greater than zero and less than one.
 #'@param two_sided                 Default `NULL`. Whether diffuse materials should be two sided (normal is taken as the absolute value of the dot product of the light direction and the normal).
-#'
+#'@param sigma                     Default `0`. Oren-Nayar angle.
+#' 
 #'@return Shape with new material
 #'@export
-#'@examples
-#'if(run_documentation()) {
+#'@examplesIf interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))
 #'#Set the material of an object
 #'generate_cornell_mesh() |>
 #'  add_shape(set_material(sphere_mesh(position=c(400,555/2,555/2),radius=40), 
@@ -53,7 +53,6 @@
 #'                         material = material_list(diffuse="gold", type="phong", 
 #'                                                  ambient="gold", ambient_intensity=0.4))) |>
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
-#'  }
 set_material = function(mesh, material = NULL, id = NULL,
                         diffuse                   = c(0.5,0.5,0.5),
                         ambient                   = c(0,0,0),
@@ -79,11 +78,12 @@ set_material = function(mesh, material = NULL, id = NULL,
                         type                      = "diffuse",
                         translucent               = TRUE,
                         toon_levels               = 5,
-                        toon_outline_width        = 0.05,
+                        toon_outline_width        = 3,
                         toon_outline_color        = "black",
                         reflection_intensity      = 0.0,
                         reflection_sharpness      = 0.0,
-                        two_sided                 = FALSE) {
+                        two_sided                 = FALSE,
+                        sigma                     = 0) {
   culling = switch(culling, "back" = 1, "front" = 2, "none" = 3, 1)
   if(is.null(material)) {
     material = list()
@@ -117,6 +117,8 @@ set_material = function(mesh, material = NULL, id = NULL,
     material$reflection_intensity        = reflection_intensity        
     material$reflection_sharpness    = reflection_sharpness      
     material$two_sided              = two_sided   
+    material$sigma              = sigma   
+    
     material = rayvertex_material(material)
   }
   material_hash = digest::digest(material)
@@ -187,16 +189,16 @@ set_material = function(mesh, material = NULL, id = NULL,
 #'@param type                      Default `NULL`. The shader type. Options include `diffuse`,`phong`,`vertex`, and `color`.
 #'@param translucent               Default `NULL`. Whether light should transmit through a semi-transparent material.
 #'@param toon_levels               Default `NULL`. Number of color breaks in the toon shader.
-#'@param toon_outline_width        Default `NULL`. Expansion term for model to specify toon outline width. Note: setting this property via this function currently does not generate outlines. Specify it during object creation.
-#'@param toon_outline_color        Default `NULL`. Toon outline color.Note: setting this property via this function currently does not color outlines. Specify it during object creation.
+#'@param toon_outline_width        Default `NULL`. Number of pixels of toon outline.
+#'@param toon_outline_color        Default `NULL`. Toon outline color. 
 #'@param reflection_intensity      Default `NULL`. Intensity of the reflection of the environment map, if present. This will be ignored if the material is refractive.
 #'@param reflection_sharpness      Default `NULL`. Sharpness of the reflection, where lower values have blurrier reflections. Must be greater than zero and less than one.
 #'@param two_sided                 Default `NULL`. Whether diffuse materials should be two sided (normal is taken as the absolute value of the dot product of the light direction and the normal).
-#'
+#'@param sigma                     Default `0`. Oren-Nayar angle.
+#' 
 #'@return Shape with new material settings
 #'@export
-#'@examples
-#'if(run_documentation()) {
+#'@examplesIf interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))
 #'p_sphere = sphere_mesh(position=c(555/2,555/2,555/2), 
 #'                       radius=40,material=material_list(diffuse="purple"))
 #'generate_cornell_mesh() |>
@@ -206,9 +208,7 @@ set_material = function(mesh, material = NULL, id = NULL,
 #'  add_shape(change_material(translate_mesh(p_sphere,c(-100,-100,0)),type="phong")) |>
 #'  add_shape(change_material(translate_mesh(p_sphere,c(-200,-100,0)),type="phong",shininess=30)) |>
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
-#'}  
 #'
-#'if(run_documentation()) {
 #'#Change several shapes at once
 #'p_sphere |>
 #'  add_shape(change_material(translate_mesh(p_sphere,c(200,0,0)),diffuse="red")) |>
@@ -218,7 +218,6 @@ set_material = function(mesh, material = NULL, id = NULL,
 #'  change_material(diffuse = "red") |> 
 #'  add_shape(generate_cornell_mesh()) |> 
 #'  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
-#'}
 change_material = function(mesh, id = NULL, sub_id = 1,
                            diffuse                   = NULL,
                            ambient                   = NULL,
@@ -248,7 +247,8 @@ change_material = function(mesh, id = NULL, sub_id = 1,
                            toon_outline_color        = NULL,
                            reflection_intensity      = NULL,
                            reflection_sharpness      = NULL,
-                           two_sided                 = NULL) {
+                           two_sided                 = NULL,
+                           sigma                     = NULL) {
   if(!is.null(culling)) {
     culling = switch(culling, "back" = 1, "front" = 2, "none" = 3, 1)
   }
@@ -286,6 +286,8 @@ change_material = function(mesh, id = NULL, sub_id = 1,
           if(!is.null(reflection_intensity))      mesh$materials[[j]][[i]]$reflection_intensity = reflection_intensity
           if(!is.null(reflection_sharpness))      mesh$materials[[j]][[i]]$reflection_sharpness = reflection_sharpness
           if(!is.null(two_sided))                 mesh$materials[[j]][[i]]$two_sided            = two_sided
+          if(!is.null(sigma))                     mesh$materials[[j]][[i]]$sigma                = sigma
+          
         }
       }
     } else {
@@ -319,6 +321,7 @@ change_material = function(mesh, id = NULL, sub_id = 1,
         if(!is.null(reflection_intensity))      mesh$materials[[id]][[sub_id]]$reflection_intensity = reflection_intensity
         if(!is.null(reflection_sharpness))      mesh$materials[[id]][[sub_id]]$reflection_sharpness = reflection_sharpness
         if(!is.null(two_sided))                 mesh$materials[[id]][[sub_id]]$two_sided            = two_sided
+        if(!is.null(sigma))                     mesh$materials[[id]][[sub_id]]$sigma                = sigma
         
       }
       if(is.character(id)) {
@@ -353,6 +356,7 @@ change_material = function(mesh, id = NULL, sub_id = 1,
             if(!is.null(reflection_intensity))      mesh$materials[[i]][[sub_id]]$reflection_intensity = reflection_intensity
             if(!is.null(reflection_sharpness))      mesh$materials[[i]][[sub_id]]$reflection_sharpness = reflection_sharpness
             if(!is.null(two_sided))                 mesh$materials[[i]][[sub_id]]$two_sided            = two_sided
+            if(!is.null(sigma))                     mesh$materials[[i]][[sub_id]]$sigma                = sigma
             
           }
         }
@@ -408,16 +412,16 @@ change_material = function(mesh, id = NULL, sub_id = 1,
 #'@param type                      Default `"diffuse"`. The shader type. Options include `diffuse`,`phong`,`vertex`, and `color`.
 #'@param translucent               Default `FALSE`. Whether light should transmit through a semi-transparent material.
 #'@param toon_levels               Default `5`. Number of color breaks in the toon shader.
-#'@param toon_outline_width        Default `0.05`. Expansion term for model to specify toon outline width.
+#'@param toon_outline_width        Default `3`. Number of pixels of toon outline.
 #'@param toon_outline_color        Default `black`. Toon outline color.
 #'@param reflection_intensity      Default `0.0`. Intensity of the reflection of the environment map, if present. This will be ignored if the material is refractive.
 #'@param reflection_sharpness      Default `1.0`. Sharpness of the reflection, where lower values have blurrier reflections. Must be greater than zero and less than one.
 #'@param two_sided                 Default `FALSE`. Whether diffuse materials should be two sided (normal is taken as the absolute value of the dot product of the light direction and the normal).
-#'
+#'@param sigma                     Default `0`. Oren-Nayar angle.
+#' 
 #'@return List of material properties.
 #'@export
-#'@examples
-#'if(run_documentation()) {
+#'@examplesIf interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))
 #'mat_prop = material_list(diffuse="purple", type="phong", shininess = 20,
 #'                         ambient="purple", ambient_intensity=0.3,
 #'                         specular = "red", specular_intensity=2)
@@ -426,7 +430,6 @@ change_material = function(mesh, id = NULL, sub_id = 1,
 #'                       radius=40,material=mat_prop)
 #'                       
 #'rasterize_scene(p_sphere, light_info=directional_light(direction=c(0.1,0.6,-1)))
-#'}
 material_list = function(diffuse                   = c(0.8,0.8,0.8),
                          ambient                   = c(0,0,0),
                          specular                  = c(1,1,1),
@@ -451,11 +454,12 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
                          type                      = "diffuse",
                          translucent               = TRUE,
                          toon_levels               = 5,
-                         toon_outline_width        = 0.05,
+                         toon_outline_width        = 3,
                          toon_outline_color        = "black",
                          reflection_intensity      = 0.0,
                          reflection_sharpness      = 1.0,
-                         two_sided                 = FALSE) {
+                         two_sided                 = FALSE,
+                         sigma                     = 0) {
   culling = switch(culling, "back" = 1, "front" = 2, "none" = 3, 1)
   material_props = 
     list(diffuse                   = convert_color(diffuse)                   ,
@@ -486,7 +490,8 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
          toon_outline_color        = convert_color(toon_outline_color)        ,
          reflection_intensity      = reflection_intensity      ,
          reflection_sharpness      = reflection_sharpness,
-         two_sided                 = two_sided)
+         two_sided                 = two_sided,
+         sigma                     = sigma)
   stopifnot(length(material_props$diffuse) == 3)
   stopifnot(length(material_props$ambient) == 3)
   stopifnot(length(material_props$specular) == 3)
@@ -496,22 +501,4 @@ material_list = function(diffuse                   = c(0.8,0.8,0.8),
   
   
   return(rayvertex_material(material_props))
-}
-
-#' Add Outline
-#' 
-#'@return Matrix
-#'@keywords internal
-generate_toon_outline = function(single_obj, material, scale = 1) {
-  if((material$type == "toon" || material$type == "toon_phong") && material$toon_outline_width != 0.0) {
-    bbox = apply(single_obj$vertices[[1]],2,range)
-    bbox_size = bbox[2,] - bbox[1,]
-    scaleval = (bbox_size + material$toon_outline_width)/bbox_size
-    single_obj = single_obj |>
-      scale_mesh(scale = scaleval) |>
-      set_material(diffuse=material$toon_outline_color , culling = "front", type="color")
-  }
-  class(single_obj) = c("ray_mesh", "list")
-  
-  return(single_obj)
 }

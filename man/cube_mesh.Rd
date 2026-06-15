@@ -24,7 +24,7 @@ cube_mesh(
 
 \item{order_rotation}{Default \code{c(1,2,3)}. Order to rotate the axes.}
 
-\item{material}{Default \code{material_list()} (default values). Specify the material of the object.}
+\item{material}{Default \code{\link[=material_list]{material_list()}} (default values). Specify the material of the object.}
 }
 \value{
 List describing the mesh.
@@ -33,25 +33,21 @@ List describing the mesh.
 3D obj model of the letter R
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 #Generate a cube
 generate_cornell_mesh() |>
   add_shape(cube_mesh(position = c(555/2, 100, 555/2), scale = 100)) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
-if(run_documentation()) {
-#Generate a blue rotated cube 
+#Generate a blue rotated cube
 generate_cornell_mesh() |>
   add_shape(cube_mesh(position = c(555/2, 100, 555/2), scale = 100, angle=c(0,45,0),
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
-if(run_documentation()) {
-#Generate a scaled, blue rotated cube 
+#Generate a scaled, blue rotated cube
 generate_cornell_mesh() |>
   add_shape(cube_mesh(position = c(555/2, 100, 555/2), angle=c(0,45,0),
                       scale = c(2,0.5,0.8)*100,
                       material = material_list(diffuse="dodgerblue"))) |>
   rasterize_scene(light_info = directional_light(c(0.5,0.5,-1)))
-}
+\dontshow{\}) # examplesIf}
 }

@@ -32,17 +32,18 @@ set_material(
   type = "diffuse",
   translucent = TRUE,
   toon_levels = 5,
-  toon_outline_width = 0.05,
+  toon_outline_width = 3,
   toon_outline_color = "black",
   reflection_intensity = 0,
   reflection_sharpness = 0,
-  two_sided = FALSE
+  two_sided = FALSE,
+  sigma = 0
 )
 }
 \arguments{
 \item{mesh}{The target mesh.}
 
-\item{material}{Default \code{NULL}. You can pass the output of the \code{material_list()} function
+\item{material}{Default \code{NULL}. You can pass the output of \code{\link[=material_list]{material_list()}}
 to specify the material, or use the following individual settings.}
 
 \item{id}{Default \code{1}. Either a number specifying the material to change, or a character vector
@@ -96,15 +97,17 @@ matching the material name.}
 
 \item{toon_levels}{Default \code{5}. Number of color breaks in the toon shader.}
 
-\item{toon_outline_width}{Default \code{0.05}. Expansion term for model to specify toon outline width. Note: setting this property via this function currently does not generate outlines. Specify it during object creation.}
+\item{toon_outline_width}{Default \code{3}. Number of pixels of toon outline.}
 
-\item{toon_outline_color}{Default \code{black}. Toon outline color. Note: setting this property via this function currently does not color outlines. Specify it during object creation.}
+\item{toon_outline_color}{Default \code{black}. Toon outline color.}
 
 \item{reflection_intensity}{Default \code{0.0}. Intensity of the reflection of the environment map, if present. This will be ignored if the material is refractive.}
 
 \item{reflection_sharpness}{Default \code{1.0}. Sharpness of the reflection, where lower values have blurrier reflections. Must be greater than zero and less than one.}
 
 \item{two_sided}{Default \code{NULL}. Whether diffuse materials should be two sided (normal is taken as the absolute value of the dot product of the light direction and the normal).}
+
+\item{sigma}{Default \code{0}. Oren-Nayar angle.}
 }
 \value{
 Shape with new material
@@ -113,7 +116,7 @@ Shape with new material
 Set the material(s) of the mesh.
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 #Set the material of an object
 generate_cornell_mesh() |>
  add_shape(set_material(sphere_mesh(position=c(400,555/2,555/2),radius=40), 
@@ -124,5 +127,5 @@ generate_cornell_mesh() |>
                         material = material_list(diffuse="gold", type="phong", 
                                                  ambient="gold", ambient_intensity=0.4))) |>
  rasterize_scene(light_info=directional_light(direction=c(0.1,0.6,-1)))
- }
+\dontshow{\}) # examplesIf}
 }

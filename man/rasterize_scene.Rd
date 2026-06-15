@@ -30,7 +30,7 @@ rasterize_scene(
   ssao = FALSE,
   ssao_intensity = 10,
   ssao_radius = 0.1,
-  tonemap = "none",
+  tonemap = "raw",
   debug = "none",
   near_plane = 0.1,
   far_plane = 100,
@@ -45,7 +45,8 @@ rasterize_scene(
   background_sharpness = 1,
   verbose = FALSE,
   vertex_transform = NULL,
-  validate_scene = TRUE
+  validate_scene = TRUE,
+  transparent_background = FALSE
 )
 }
 \arguments{
@@ -76,8 +77,8 @@ rasterize_scene(
 \item{fsaa}{Default \code{2}. Full screen anti-aliasing multiplier. Must be positive integer, higher numbers
 will improve anti-aliasing quality but will vastly increase memory usage.}
 
-\item{light_info}{Default \code{directional_light()}. Description of scene lights, generated with the \code{point_light()} and
-\code{directional_light()} functions.}
+\item{light_info}{Default \code{\link[=directional_light]{directional_light()}}. Description of scene lights, generated with the \code{\link[=point_light]{point_light()}} and
+\code{\link[=directional_light]{directional_light()}} functions.}
 
 \item{color}{Default \code{darkred}. Color of model if no material file present (or for faces using the default material).}
 
@@ -101,7 +102,7 @@ will improve anti-aliasing quality but will vastly increase memory usage.}
 
 \item{ssao_radius}{Default \code{0.1}. Radius to use when calculating the SSAO term.}
 
-\item{tonemap}{Default \code{"none"}.}
+\item{tonemap}{Default \code{"raw"}. See \code{\link[rayimage:render_tonemap]{rayimage::render_tonemap()}} for more details.}
 
 \item{debug}{Default \code{"none"}.}
 
@@ -138,6 +139,8 @@ of the background image.}
 Function should takes a length-3 numeric vector and returns another length-3 numeric vector as the output.}
 
 \item{validate_scene}{Default \code{TRUE}. Whether to validate the scene input.}
+
+\item{transparent_background}{Default \code{FALSE}. Whether the background of the render should be transparent.}
 }
 \value{
 Rasterized image.
@@ -146,67 +149,51 @@ Rasterized image.
 Render a 3D scene with meshes, lights, and lines using a software rasterizer.
 }
 \examples{
-if(run_documentation()) {
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
 #Let's load the cube OBJ file included with the package
 
-rasterize_scene(cube_mesh(),lookfrom=c(2,4,10), 
+rasterize_scene(cube_mesh(),lookfrom=c(2,4,10),
               light_info = directional_light(direction=c(0.5,1,0.7)))
-}
-if(run_documentation()) {
 #Flatten the cube, translate downwards, and set to grey
 base_model = cube_mesh() |>
  scale_mesh(scale=c(5,0.2,5)) |>
  translate_mesh(c(0,-0.1,0)) |>
- set_material(diffuse="grey80") 
- 
-rasterize_scene(base_model, lookfrom=c(2,4,10), 
+ set_material(diffuse="grey80")
+
+rasterize_scene(base_model, lookfrom=c(2,4,10),
               light_info = directional_light(direction=c(0.5,1,0.7)))
-}
-if(run_documentation()) {           
 #load the R OBJ file, scale it down, color it blue, and add it to the grey base
 r_model = obj_mesh(r_obj(simple_r = TRUE)) |>
  scale_mesh(scale=0.5) |>
  set_material(diffuse="dodgerblue") |>
  add_shape(base_model)
- 
-rasterize_scene(r_model, lookfrom=c(2,4,10), 
+
+rasterize_scene(r_model, lookfrom=c(2,4,10),
               light_info = directional_light(direction=c(0.5,1,0.7)))
-}
-if(run_documentation()) {
 #Zoom in and reduce the shadow mapping intensity
 rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,shadow_map = TRUE, shadow_map_intensity=0.3,
               light_info = directional_light(direction=c(0.5,1,0.7)))
-}
-if(run_documentation()) {
 #Include the resolution (4x) of the shadow map for less pixellation around the edges
 #Also decrease the shadow_map_bias slightly to remove the "peter panning" floating shadow effect
 rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
-              shadow_map_dims=4, 
+              shadow_map_dims=4,
               light_info = directional_light(direction=c(0.5,1,0.7)))
-}
-if(run_documentation()) {
 #Add some more directional lights and change their color
 lights = directional_light(c(0.7,1.1,-0.9),color = "orange",intensity = 1) |>
            add_light(directional_light(c(0.7,1,1),color = "dodgerblue",intensity = 1)) |>
            add_light(directional_light(c(2,4,10),color = "white",intensity = 0.5))
 rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
               light_info = lights)
-}
-if(run_documentation()) {
 #Add some point lights
 lights_p = lights |>
  add_light(point_light(position=c(-1,1,0),color="red", intensity=2)) |>
- add_light(point_light(position=c(1,1,0),color="purple", intensity=2)) 
+ add_light(point_light(position=c(1,1,0),color="purple", intensity=2))
 rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10,
               light_info = lights_p)
-}
-if(run_documentation()) {
 #change the camera position
 rasterize_scene(r_model, lookfrom=c(-2,2,-10), fov=10,
               light_info = lights_p)
-}
-if(run_documentation()) {
-              
+
 #Add a spiral of lines around the model by generating a matrix of line segments
 t = seq(0,8*pi,length.out=361)
 line_mat = matrix(nrow=0,ncol=9)
@@ -219,5 +206,5 @@ for(i in 1:360) {
 
 rasterize_scene(r_model, lookfrom=c(2,4,10), fov=10, line_info = line_mat,
               light_info = lights)
-}
+\dontshow{\}) # examplesIf}
 }

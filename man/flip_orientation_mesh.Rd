@@ -16,10 +16,10 @@ Mesh with flipped vertex orientation
 Flip Orientation
 }
 \examples{
-# Flip a mesh 
-if(run_documentation()) {
-sphere_mesh(position=c(-1,0,0)) |> 
-  add_shape(flip_orientation_mesh(sphere_mesh(position=c(1,0,0)))) |> 
+\dontshow{if (interactive() || isTRUE(as.logical(Sys.getenv("IN_PKGDOWN")))) withAutoprint(\{ # examplesIf}
+# Flip a mesh
+sphere_mesh(position=c(-1,0,0)) |>
+  add_shape(flip_orientation_mesh(sphere_mesh(position=c(1,0,0)))) |>
   rasterize_scene(debug="normals",fov=30)
-}
+\dontshow{\}) # examplesIf}
 }

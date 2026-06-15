@@ -1,15 +1,20 @@
-File: src/tiny_obj_loader.h
-Copyright: 2012-2019 Syoyo Fujita
+Files: src/glm/*
+Copyright: 2005 - G-Truc Creation
+License: MIT
+URL: https://github.com/g-truc/glm/
+Additional notice: src/glm/ext/scalar_ulp.inl contains code copyright (C) 1993 by Sun Microsystems, Inc.; permission to use, copy, modify, and distribute this software is freely granted, provided that the notice is preserved.
+
+File: src/tinyobj/tiny_obj_loader.h
+Copyright: 2012-Present, Syoyo Fujita and many contributors
+License: MIT
 URL: https://github.com/syoyo/tinyobjloader/
 
-File: src/miniply.h src/miniply.cpp
+File: src/tinyobj/earcut.h
+Component: Mapbox earcut implementation
+Copyright: Mapbox
+License: ISC (MIT compatible)
+
+Files: src/miniply.h, src/miniply.cpp
 Copyright: 2019 Vilya Harvey
+License: MIT
 URL: https://github.com/vilya/miniply/
-
-File: src/glm/*
-Copyright: 2005 G-Truc Creation
-URL: https://github.com/g-truc/glm/
-
-File: src/stb_image.h
-Copyright: 2017 Sean Barrett
-URL: https://github.com/nothings/stb/

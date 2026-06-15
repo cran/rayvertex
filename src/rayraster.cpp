@@ -1,10 +1,20 @@
-#define STB_IMAGE_IMPLEMENTATION 
+#define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 
 #ifndef RAYRASTERH
 #define RAYRASTERH
 
 #include "Rcpp.h"
+
+#ifdef __EMSCRIPTEN__
+  #ifdef __EMSCRIPTEN_PTHREADS__
+    #define HAVE_THREADS
+  #else
+  #endif
+#else
+  #define HAVE_THREADS
+#endif 
+
 
 #define FLOAT_AS_DOUBLE
 // #ifndef FLOAT_AS_DOUBLE
@@ -13,11 +23,15 @@
 // typedef double Float;
 // #endif
 
+#include <vector>
+#include <cstdint>
+#include <limits>
+#include <cmath>
 #include <functional>
 #include <algorithm>
 #include <utility>
-#include "stb/stb_image.h"
-#include "stb/stb_image_resize.h"
+#include "stbimageheaders/stb_image.h"
+#include "stbimageheaders/stb_image_resize2.h"
 #include <memory>
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
@@ -30,26 +44,43 @@
 #include "single_sample.h"
 // [[Rcpp::depends(RcppThread)]]
 #include "RcppThread.h"
+#include "dummythreadpool.h"
 
 #include "material.h"
 
 #include "light.h"
 #include "line.h"
-
-// typedef glm::dvec4 vec4;
-// typedef glm::dvec3 vec3;
-// typedef glm::dvec2 vec2;
-// typedef glm::dmat4x4 Mat;
-
-// static void print_vec(vec3 m) {
-//   RcppThread::Rcout << std::fixed << m[0] << " " << m[1] << " " << m[2] << "\n";
-// }
-// 
-// static void print_vec(glm::dvec4 m) {
-//   RcppThread::Rcout << std::fixed << m[0] << " " << m[1] << " " << m[2] << " " << m[3] << "\n";
-// }
+#include "GBuffer.h"
 
 using namespace Rcpp;
+
+inline stbir_pixel_layout stbir_layout_from_channels(int channels) {
+  switch(channels) {
+  case 1:
+    return STBIR_1CHANNEL;
+  case 2:
+    return STBIR_2CHANNEL;
+  case 3:
+    return STBIR_RGB;
+  case 4:
+    return STBIR_4CHANNEL;
+  default:
+    throw std::runtime_error("Reflection map must have between 1 and 4 channels");
+  }
+}
+
+inline void resize_reflection_map(const float* input_pixels, int input_w, int input_h,
+                                  float* output_pixels, int output_w, int output_h,
+                                  int channels) {
+  void* resize_result = stbir_resize(input_pixels, input_w, input_h, 0,
+                                     output_pixels, output_w, output_h, 0,
+                                     stbir_layout_from_channels(channels),
+                                     STBIR_TYPE_FLOAT, STBIR_EDGE_WRAP,
+                                     STBIR_FILTER_CUBICBSPLINE);
+  if(resize_result == nullptr) {
+    throw std::runtime_error("Reflection map resizing failed");
+  }
+}
 
 inline vec3 clamp(const vec3& c, Float clamplow, Float clamphigh) {
   vec3 temp = c;
@@ -101,15 +132,187 @@ inline T lerp(Float t, T v1, T v2) {
   return((1-t) * v1 + t * v2);
 }
 
-// void print_mat(Mat m) {
-//   m = glm::transpose(m);
-//   Rcpp::Rcout.precision(5);
-//   Rcpp::Rcout << std::fixed << m[0][0] << " " << m[0][1] << " " << m[0][2] << " " << m[0][3] << "\n";
-//   Rcpp::Rcout << std::fixed << m[1][0] << " " << m[1][1] << " " << m[1][2] << " " << m[1][3] << "\n";
-//   Rcpp::Rcout << std::fixed << m[2][0] << " " << m[2][1] << " " << m[2][2] << " " << m[2][3] << "\n";
-//   Rcpp::Rcout << std::fixed << m[3][0] << " " << m[3][1] << " " << m[3][2] << " " << m[3][3] << "\n";
-// }
+struct JFASeed {
+  int x;
+  int y;
+};
+static void
+apply_toon_outlines_jfa(std::vector<vec3> &color_buffer,
+                        const std::vector<OutlineGBufferPixel> &gbuffer,
+                        int width, int height, Float fov_y,
+                        Float ortho_view_height,
+						NumericMatrix &zbuffer,
+                        NumericMatrix &linear_depth) {
+  if (width <= 1 || height <= 1) {
+    return;
+  }
+  const std::size_t n =
+      static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+  if (color_buffer.size() != n || gbuffer.size() != n) {
+    return;
+  }
 
+  std::vector<JFASeed> seeds_curr(n);
+  std::vector<JFASeed> seeds_next(n);
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      std::size_t idx = static_cast<std::size_t>(y) * width + x;
+      const OutlineGBufferPixel &px = gbuffer[idx];
+
+      // Default value
+      seeds_curr[idx].x = -1;
+      seeds_curr[idx].y = -1;
+
+      if (px.outline_width <= 0.0f || std::isinf(px.depth_view)) {
+        continue;
+      }
+
+      bool is_edge = false;
+
+      // Check 8-neighborhood for a discontinuity in occupancy/material
+      for (int dy = -1; dy <= 1 && !is_edge; ++dy) {
+        for (int dx = -1; dx <= 1 && !is_edge; ++dx) {
+          if (dx == 0 && dy == 0) {
+            continue;
+          }
+          int nx = x + dx;
+          int ny = y + dy;
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+            continue;
+          }
+          std::size_t nidx = static_cast<std::size_t>(ny) * width + nx;
+          const OutlineGBufferPixel &npx = gbuffer[nidx];
+
+          bool n_has_geom = !std::isinf(npx.depth_view);
+
+          // Edge if neighbor has no geometry, or different material
+          if (!n_has_geom || npx.material_id != px.material_id) {
+            is_edge = true;
+            break;
+          }
+        }
+      }
+
+      if (is_edge) {
+        seeds_curr[idx].x = x;
+        seeds_curr[idx].y = y;
+      }
+    }
+  }
+
+  // Jump Flood
+  int max_dim = std::max(width, height);
+  int step = 1;
+  while (step < max_dim) {
+    step <<= 1;
+  }
+  step >>= 1;
+
+  static const int dirs[9][2] = {
+      {-1, -1}, {0, -1}, {1, -1},
+      {-1,  0}, {0,  0}, {1,  0},
+      {-1,  1}, {0,  1}, {1,  1}
+  };
+
+  for (; step >= 1; step >>= 1) {
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        std::size_t idx = static_cast<std::size_t>(y) * width + x;
+
+        JFASeed best = seeds_curr[idx];
+        Float best_dist2 = std::numeric_limits<Float>::infinity();
+        if (best.x >= 0) {
+          Float dx = (Float)(best.x - x);
+          Float dy = (Float)(best.y - y);
+          best_dist2 = dx * dx + dy * dy;
+        }
+
+        for (int k = 0; k < 9; ++k) {
+          int nx = x + dirs[k][0] * step;
+          int ny = y + dirs[k][1] * step;
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+            continue;
+          }
+          std::size_t nidx = static_cast<std::size_t>(ny) * width + nx;
+          const JFASeed &cand = seeds_curr[nidx];
+          if (cand.x < 0) {
+            continue;
+          }
+          Float dx = (Float)(cand.x - x);
+          Float dy = (Float)(cand.y - y);
+          Float d2 = dx * dx + dy * dy;
+          if (d2 < best_dist2) {
+            best_dist2 = d2;
+            best = cand;
+          }
+        }
+
+        seeds_next[idx] = best;
+      }
+    }
+    seeds_curr.swap(seeds_next);
+  }
+
+  // Apply outlines
+  std::vector<vec3> out_colors = color_buffer;
+
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      std::size_t idx = static_cast<std::size_t>(y) * width + x;
+      const JFASeed &s = seeds_curr[idx];
+
+      if (s.x < 0) {
+        continue; // no edge reachable
+      }
+
+      std::size_t sidx = static_cast<std::size_t>(s.y) * width + s.x;
+      const OutlineGBufferPixel &seed_px = gbuffer[sidx];
+      const OutlineGBufferPixel &dst_px = gbuffer[idx];
+
+      Float radius_px = seed_px.outline_width;
+      if (radius_px <= 0.5f) {
+        continue;
+      }
+
+      Float dx = (Float)(x - s.x);
+      Float dy = (Float)(y - s.y);
+      Float dist2 = dx * dx + dy * dy;
+
+      if (dist2 > radius_px * radius_px) {
+        continue;
+      }
+
+      bool dst_has_geom = !std::isinf(dst_px.depth_view);
+
+      // Never draw on the same toon surface itself.
+      // Any pixel that originally belonged to the same toon material
+      // (has outline_width > 0) is considered "interior" for the purpose
+      // of outline drawing, regardless of its depth.
+      bool same_toon_surface = dst_has_geom && dst_px.outline_width > 0.0f &&
+                               dst_px.material_id == seed_px.material_id;
+
+      if (same_toon_surface) {
+        continue;
+      }
+
+      // Occluder check: if there is geometry in front of the edge,
+      // don't draw the outline through it.
+      if (dst_has_geom && dst_px.depth_view < seed_px.depth_view) {
+        continue;
+      }
+
+      out_colors[idx] = seed_px.outline_color;
+      int sx = s.x;
+      int sy = s.y;
+
+      zbuffer(x, y) = zbuffer(sx, sy);
+      linear_depth(x, y) = seed_px.depth_view;
+    }
+  }
+  color_buffer.swap(out_colors);
+}
 
 // [[Rcpp::export]]
 List rasterize(List mesh, 
@@ -151,6 +354,7 @@ List rasterize(List mesh,
                double background_sharpness,
                LogicalVector has_refraction, bool environment_map_hdr,
                bool has_environment_map, NumericVector bg_color,
+               bool transparent_background,
                bool verbose) {
   List materials = as<List>(mesh["materials"]);
   int number_materials = materials.size();
@@ -197,13 +401,13 @@ List rasterize(List mesh,
       float* reflection_map_data_new = new float[nx_r * ny_r * nn_r];
       if(reflection_sharpness < 1.0 && reflection_sharpness > 0.0) {
         float* reflection_map_data_temp = new float[nx_r_resize * ny_r_resize * nn_r];
-        stbir_resize_float_generic(reflection_map_data, nx_r, ny_r, 0, 
-                                   reflection_map_data_temp, nx_r_resize, ny_r_resize, 0,
-                                   nn_r, 0, 0, STBIR_EDGE_WRAP, STBIR_FILTER_CUBICBSPLINE, STBIR_COLORSPACE_LINEAR, NULL);
+        resize_reflection_map(reflection_map_data, nx_r, ny_r,
+                              reflection_map_data_temp, nx_r_resize, ny_r_resize,
+                              nn_r);
         
-        stbir_resize_float_generic(reflection_map_data_temp, nx_r_resize, ny_r_resize, 0, 
-                                   reflection_map_data_new, nx_r, ny_r, 0,
-                                   nn_r, 0, 0, STBIR_EDGE_WRAP, STBIR_FILTER_CUBICBSPLINE, STBIR_COLORSPACE_LINEAR, NULL);
+        resize_reflection_map(reflection_map_data_temp, nx_r_resize, ny_r_resize,
+                              reflection_map_data_new, nx_r, ny_r,
+                              nn_r);
         delete[] reflection_map_data_temp;
       } else {
         memcpy(reflection_map_data_new, main_reflection_map.reflection, sizeof(float) * nx_r * ny_r * nn_r);
@@ -236,6 +440,8 @@ List rasterize(List mesh,
 
   //Account for colinear camera direction/cam_up vectors
   if(glm::length(glm::cross(eye-center,cam_up)) == 0) {
+    const std::string warn_string("Look direction and camera up colinear--using c(0,0,1) for up.");
+    Rcpp::warning(warn_string);
     cam_up = vec3(0.,0.,1.f);
   }
   
@@ -273,15 +479,19 @@ List rasterize(List mesh,
   NumericMatrix r(nx,ny);
   NumericMatrix g(nx,ny);
   NumericMatrix b(nx,ny);
+  NumericMatrix a(nx,ny);
+  
   
   //Fill bg color
   std::fill(r.begin(), r.end(), bg_color[0]) ;
   std::fill(g.begin(), g.end(), bg_color[1] ) ;
   std::fill(b.begin(), b.end(), bg_color[2] ) ;
+  float default_alpha = !transparent_background ? 1.0f : 0.0f;
+  std::fill(a.begin(), a.end(), default_alpha ) ;
   
   
   //Create buffers
-  rayimage image(r,g,b,nx,ny);
+  rayimage image(r,g,b,a, nx,ny);
   
   //Depth buffer
   NumericMatrix zbuffer(nx,ny);
@@ -298,6 +508,11 @@ List rasterize(List mesh,
   NumericMatrix xxbuffer(nx,ny);
   NumericMatrix yybuffer(nx,ny);
   NumericMatrix zzbuffer(nx,ny);
+
+  // Material ID buffer (topmost visible material index per pixel)
+  IntegerMatrix material_id_buffer(nx, ny);
+  std::fill(material_id_buffer.begin(), material_id_buffer.end(), -1);
+  
   
   //Normal space buffer
   NumericMatrix nxbuffer(nx,ny);
@@ -402,12 +617,20 @@ List rasterize(List mesh,
   ///
   //Parse mesh3d
   //
+  List shapes = as<List>(mesh["shapes"]);
+  int number_shapes = shapes.size();
   
   //Start by generating a shader for every material
   std::vector<material_info> mat_info;
   std::vector<IShader*> shaders;
 
-  
+  // Count total faces across all shapes so we can size varying buffers correctly
+  int total_faces = 0;
+  for(int i = 0; i < number_shapes; i++) {
+    List single_shape = as<List>(shapes(i));
+    IntegerMatrix shape_inds = as<IntegerMatrix>(single_shape["indices"]);
+    total_faces += shape_inds.nrow();
+  }
   std::vector<vec3> vec_varying_intensity;
   std::vector<std::vector<vec3> > vec_varying_uv;
   std::vector<std::vector<vec4> > vec_varying_tri;
@@ -416,7 +639,8 @@ List rasterize(List mesh,
   std::vector<std::vector<vec3> > vec_varying_ndc_tri;
   std::vector<std::vector<vec3> > vec_varying_nrm;
   
-  for(int i = 0; i < max_indices; i++ ) {
+  for(int i = 0; i < total_faces; i++ ) {
+    vec_varying_intensity.push_back(vec3(0.0f));
     std::vector<vec3> tempuv(3);
     std::vector<vec4> temptri(3);
     std::vector<vec3> temppos(3);
@@ -457,8 +681,17 @@ List rasterize(List mesh,
     int cull_type = as<int>(single_material["culling"]);
     bool is_translucent = as<bool>(single_material["translucent"]);
     Float toon_levels = as<Float>(single_material["toon_levels"]);
+	Float toon_outline_width = as<Float>(single_material["toon_outline_width"]);
+	NumericVector toon_outline_color = as<NumericVector>(single_material["toon_outline_color"]);
     Float reflection_intensity = as<Float>(single_material["reflection_intensity"]);
     bool two_sided = as<bool>(single_material["two_sided"]);
+    Float sigma = as<Float>(single_material["sigma"]);
+    
+    int type = typevals(i);
+
+	if(type != 9 && type != 10) {
+      toon_outline_width = 0.0f;
+  	}
     //Change cull type to none if two sided
     cull_type = !two_sided ? cull_type : 3;
     
@@ -496,12 +729,14 @@ List rasterize(List mesh,
       cull_type,
       is_translucent,
       toon_levels,
-      reflection_intensity
+	  toon_outline_width,
+	  vec3(toon_outline_color(0),toon_outline_color(1),toon_outline_color(2)),
+      reflection_intensity,
+      sigma
     };
     mat_info.push_back(temp);
-    
+
     IShader* shader;
-    int type = typevals(i);
     if(type == 1) {
       shader = new GouraudShader(Model, Projection, View, viewport,
                                  has_shadow_map, 
@@ -516,19 +751,35 @@ List rasterize(List mesh,
                                  vec_varying_world_nrm,vec_varying_ndc_tri,vec_varying_nrm,
                                  reflection_maps[i], has_reflection_map(i), has_refraction(i));
     } else if (type == 2) {
-      shader = new DiffuseShader(Model, Projection, View, viewport,
-                                 has_shadow_map,
-                                 shadow_map_bias,mat_info[i], point_lights,
-                                 directional_lights, 
-                                 shadowbuffers,
-                                 transparency_buffers,
-                                 vec_varying_intensity,
-                                 vec_varying_uv,
-                                 vec_varying_tri,
-                                 vec_varying_pos,
-                                 vec_varying_world_nrm,vec_varying_ndc_tri,vec_varying_nrm,
-                                 reflection_maps[i], has_reflection_map(i), has_refraction(i),
-                                 two_sided);
+      if(sigma <= 0) {
+        shader = new DiffuseShader(Model, Projection, View, viewport,
+                                   has_shadow_map,
+                                   shadow_map_bias,mat_info[i], point_lights,
+                                   directional_lights, 
+                                   shadowbuffers,
+                                   transparency_buffers,
+                                   vec_varying_intensity,
+                                   vec_varying_uv,
+                                   vec_varying_tri,
+                                   vec_varying_pos,
+                                   vec_varying_world_nrm,vec_varying_ndc_tri,vec_varying_nrm,
+                                   reflection_maps[i], has_reflection_map(i), has_refraction(i),
+                                   two_sided);
+      } else {
+        shader = new OrenNayerShader(Model, Projection, View, viewport,
+                                   has_shadow_map,
+                                   shadow_map_bias,mat_info[i], point_lights,
+                                   directional_lights, 
+                                   shadowbuffers,
+                                   transparency_buffers,
+                                   vec_varying_intensity,
+                                   vec_varying_uv,
+                                   vec_varying_tri,
+                                   vec_varying_pos,
+                                   vec_varying_world_nrm,vec_varying_ndc_tri,vec_varying_nrm,
+                                   reflection_maps[i], has_reflection_map(i), has_refraction(i),
+                                   two_sided);
+      }
     } else if (type == 3) {
       shader = new PhongShader(Model, Projection, View, viewport,
                                has_shadow_map,
@@ -667,7 +918,10 @@ List rasterize(List mesh,
     1,
     false,
     5,
-    0.0
+	0.0,         // toon_outline_width
+    vec3(0.0),   // toon_outline_color
+    0.0,
+    0
   };
   
   mat_info.push_back(default_mat);
@@ -751,8 +1005,6 @@ List rasterize(List mesh,
   
   
   //Initialize Model vectors
-  List shapes = as<List>(mesh["shapes"]);
-  int number_shapes = shapes.size();
   std::vector<ModelInfo> models;
 
   //Initialize vertex storage vectors
@@ -767,8 +1019,7 @@ List rasterize(List mesh,
   NumericMatrix mesh_texcoords = as<NumericMatrix>(mesh["texcoords"]);
   NumericMatrix mesh_normals = as<NumericMatrix>(mesh["normals"]);
   
-  
-  
+  int running_face_offset = 0;
   for(int i = 0; i < number_shapes; i++) {
     List single_shape = as<List>(shapes(i));
     IntegerMatrix shape_inds = as<IntegerMatrix>(single_shape["indices"]);
@@ -790,8 +1041,10 @@ List rasterize(List mesh,
                     shape_inds, tex_inds, norm_inds, 
                     has_vertex_tex, has_vertex_normals,
                     shape_materials,
-                    has_normals_vec(i), has_tex_vec(i), tbn);
+                    has_normals_vec(i), has_tex_vec(i), tbn,
+                    running_face_offset);
     models.push_back(model);
+    running_face_offset += n;
   }
   print_time(verbose, "Initialized 3D models" );
   
@@ -944,7 +1197,7 @@ List rasterize(List mesh,
       auto task = [&depth_shader_single, &blocks_depth, &ndc_verts_depth, &ndc_inv_w_depth,  
                    &min_block_bound_depth, &max_block_bound_depth,
                    &zbuffer_depth, &shadowbuff, &normalbuffer, &positionbuffer, &uvbuffer, 
-                   &models, &alpha_depth_single, sb] (unsigned int i) {
+                   &models, &alpha_depth_single] (unsigned int i) {
         fill_tri_blocks(blocks_depth[i],
                         ndc_verts_depth,
                         ndc_inv_w_depth,
@@ -957,9 +1210,14 @@ List rasterize(List mesh,
                         positionbuffer,
                         uvbuffer,
                         models, true,
-                        alpha_depth_single);
-      };
+                        alpha_depth_single,
+						nullptr);
+      }; 
+      #ifdef HAVE_THREADS
       RcppThread::ThreadPool pool2(numbercores);
+      #else
+      DummyThreadPool pool2;
+      #endif
       for(int i = 0; i < nx_blocks_depth*ny_blocks_depth; i++) {
         pool2.push(task, i);
       }
@@ -1047,7 +1305,7 @@ List rasterize(List mesh,
   }
 
   auto task = [&shaders, &models, &blocks, &ndc_verts, &ndc_inv_w,  &min_block_bound, &max_block_bound,
-               &zbuffer, &image, &normalbuffer, &positionbuffer, &uvbuffer,
+               &zbuffer, &image, &normalbuffer, &positionbuffer, &uvbuffer, &material_id_buffer,
                &alpha_depths] (unsigned int i) {
     fill_tri_blocks(blocks[i],
                     ndc_verts,
@@ -1061,11 +1319,15 @@ List rasterize(List mesh,
                     positionbuffer,
                     uvbuffer,
                     models, false,
-                    alpha_depths);
+                    alpha_depths,
+					&material_id_buffer);
   };
   
-
+  #ifdef HAVE_THREADS
   RcppThread::ThreadPool pool(numbercores);
+  #else
+  DummyThreadPool pool;
+  #endif
   for(int i = 0; i < nx_blocks*ny_blocks; i++) {
     pool.push(task, i);
   }
@@ -1207,13 +1469,13 @@ List rasterize(List mesh,
       
       float* reflection_map_data_temp = new float[nx_r_resize * ny_r_resize * nn_r];
       
-      stbir_resize_float_generic(main_reflection_map.reflection, nx_r, ny_r, 0, 
-                         reflection_map_data_temp, nx_r_resize, ny_r_resize, 0,
-                         nn_r, 0, 0, STBIR_EDGE_WRAP, STBIR_FILTER_CUBICBSPLINE, STBIR_COLORSPACE_LINEAR, NULL);
+      resize_reflection_map(main_reflection_map.reflection, nx_r, ny_r,
+                            reflection_map_data_temp, nx_r_resize, ny_r_resize,
+                            nn_r);
       
-      stbir_resize_float_generic(reflection_map_data_temp, nx_r_resize, ny_r_resize, 0, 
-                         main_reflection_map.reflection, nx_r, ny_r, 0,
-                         nn_r, 0, 0, STBIR_EDGE_WRAP, STBIR_FILTER_CUBICBSPLINE, STBIR_COLORSPACE_LINEAR, NULL);
+      resize_reflection_map(reflection_map_data_temp, nx_r_resize, ny_r_resize,
+                            main_reflection_map.reflection, nx_r, ny_r,
+                            nn_r);
       delete[] reflection_map_data_temp;
     }
     Float theta = fov * M_PI/180;
@@ -1274,8 +1536,99 @@ List rasterize(List mesh,
   }
   linear_depth = 2*near_clip*far_clip/(far_clip + near_clip - linear_depth * (far_clip-near_clip));
   print_time(verbose, "Calculated linear depth" );
-  
-  return(List::create(_["r"] = r, _["g"] = g, _["b"] = b,
+
+  // Build color buffer and outline g-buffer for JFA
+  std::size_t pix_count =
+      static_cast<std::size_t>(nx) * static_cast<std::size_t>(ny);
+  std::vector<vec3> toon_color_buffer(pix_count);
+  std::vector<OutlineGBufferPixel> outline_gbuffer(pix_count);
+
+  for (int x = 0; x < nx; ++x) {
+    for (int y = 0; y < ny; ++y) {
+      std::size_t idx =
+          static_cast<std::size_t>(y) * static_cast<std::size_t>(nx) + x;
+
+      toon_color_buffer[idx] = image.get_color(x, y);
+      OutlineGBufferPixel &px = outline_gbuffer[idx];
+
+      // --- Decide if this pixel has geometry ---
+      bool z_is_inf = std::isinf(zbuffer(x, y));
+
+      int raw_mat_id = -1;
+      if (material_id_buffer.nrow() == nx && material_id_buffer.ncol() == ny) {
+        raw_mat_id = material_id_buffer(x, y);
+      }
+      bool has_material =
+          (raw_mat_id >= 0 && raw_mat_id < (int)mat_info.size());
+
+      bool has_normal = (nxbuffer(x, y) != 0.0 || nybuffer(x, y) != 0.0 ||
+                         nzbuffer(x, y) != 0.0);
+
+      bool has_geom = !z_is_inf && has_material && has_normal;
+
+      if (!has_geom) {
+        // Background: no geometry
+        px.normal_view = vec3(0.0);
+        px.depth_view = std::numeric_limits<Float>::infinity();
+        px.material_id = 0u;
+        px.outline_width = 0.0;
+        px.outline_color = vec3(0.0);
+        px.has_outline = false;
+        continue;
+      }
+
+      int mat_id = raw_mat_id;
+      if (mat_id < 0 || mat_id >= (int)mat_info.size()) {
+        mat_id = 0;
+      }
+
+      px.normal_view = vec3(nxbuffer(x, y), nybuffer(x, y), nzbuffer(x, y));
+      px.depth_view = linear_depth(x, y); 
+      px.material_id = static_cast<std::uint32_t>(mat_id);
+
+      const material_info &m = mat_info[mat_id];
+
+      Float outline_width = m.toon_outline_width; 
+      vec3 outline_color = m.toon_outline_color;
+
+      px.outline_width = outline_width;
+      px.outline_color = outline_color;
+      px.has_outline = (outline_width > (Float)0.0);
+    }
+  }
+
+  // Check if we even have any toon materials that want outlines
+  bool any_toon_outline = false;
+  for (std::size_t i = 0; i < mat_info.size(); ++i) {
+    if (mat_info[i].toon_outline_width > (Float)0.0) {
+      any_toon_outline = true;
+      break;
+    }
+  }
+
+  if (any_toon_outline) {
+    Float camera_fov_y = fov != 0.0 ? glm::radians((Float)fov) : (Float)0.0;
+    Float ortho_view_height = 0.0;
+    if (fov == 0.0 && ortho_dims.size() > 1) {
+      ortho_view_height = static_cast<Float>(ortho_dims(1));
+    }
+
+    apply_toon_outlines_jfa(toon_color_buffer, outline_gbuffer, nx, ny,
+                            camera_fov_y, ortho_view_height, zbuffer, linear_depth);
+
+    // Copy the modified colors back into the rayimage
+    for (int x = 0; x < nx; ++x) {
+      for (int y = 0; y < ny; ++y) {
+        std::size_t idx =
+            static_cast<std::size_t>(y) * static_cast<std::size_t>(nx) + x;
+        image.set_color(x, y, toon_color_buffer[idx]);
+      }
+    }
+
+    print_time(verbose, "Applied toon outline JFA pass");
+  }
+
+  return(List::create(_["r"] = r, _["g"] = g, _["b"] = b, _["a"] = a,
                       _["amb"] = abuffer, _["depth"] = zbuffer, _["linear_depth"] = linear_depth,
                       _["normalx"] = nxbuffer, _["normaly"] = nybuffer, _["normalz"] = nzbuffer,
                       _["positionx"] = xxbuffer, _["positiony"] = yybuffer, _["positionz"] = zzbuffer,
